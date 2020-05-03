@@ -12,6 +12,7 @@ import { CRUD } from "./API";
 
 /**
  * Every view returned by the API implements this view.
+ * ... except for Activity
  */
 export interface IView {
     /**
