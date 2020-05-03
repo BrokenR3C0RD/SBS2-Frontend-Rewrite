@@ -25,6 +25,19 @@ export abstract class Entity implements IEntity {
         this.editDate = new Date(editDate);
         this.createUserId = createUserId;
         this.editUserId = editUserId;
+
+        Intercept.Preload([
+            [ EntityType.User, [createUserId, editUserId]]
+        ]);
+    }
+
+
+    public async GetCreateUser(): Promise<User | undefined> {
+        return (await Intercept.Read(EntityType.User, { ids: [this.createUserId]}, User))[0];
+    }
+
+    public async GetEditUser(): Promise<User | undefined> {
+        return (await Intercept.Read(EntityType.User, { ids: [this.editUserId]}, User))[0];
     }
 }
 

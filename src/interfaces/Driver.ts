@@ -9,6 +9,8 @@ import { EntityType, ISearchQuery, IActivityFilter, IUserCredential, IUserSensit
 import { IView, IUserSelf, IFile } from "./Views";
 
 export interface IDriver {
+    token: string;
+
     Authenticate    (token?: string): Promise<boolean>;
     Login           (creds: Partial<IUserCredential>)       : Promise<true>;
     Register        (creds: IUserCredential)                : Promise<true>;
@@ -25,7 +27,10 @@ export interface IDriver {
     Create    <T extends IView> (type: EntityType, data: Partial<T>): Promise<T>;
     Update    <T extends IView> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
     Delete    <T extends IView> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
-    Read      <T extends IView> (type: EntityType, search: Partial<ISearchQuery>, constructor: new (data: T) => T): Promise<T[]>;
+    Read      <T extends IView> (type: EntityType, search: Partial<ISearchQuery>, constructor?: new (data: T) => T): Promise<T[]>;
+
+    Preload(requests: [EntityType, number[]][]): void;
+
 
     Upload (file: Blob) : Promise<IFile>;
     // Subscribe <T extends IView> (type: EntityType, search: Partial<ISearchQuery>, constructor: new (data: IView) => T): Promise<ISubscription<T>>;

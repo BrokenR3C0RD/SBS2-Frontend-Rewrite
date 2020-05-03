@@ -5,6 +5,7 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
+
 import Validate from "validator";
 import { API_ENTITY } from "../constants/ApiRoutes";
 import { IUserCredential, IUserSensitiveUpdate, EntityType, ISearchQuery } from "../interfaces/API";
@@ -14,11 +15,14 @@ import { IUserSelf, IView, IFile } from "../interfaces/Views";
 import { Dictionary } from "../interfaces/Generic";
 
 export class HTTPDriver implements IDriver {
-    token?: string;
+    private tok?: string;
+    public get token(): string {
+        return this.tok || "";
+    }
 
     public async Authenticate(token?: string): Promise<boolean> {
         if (!token) {
-            this.token = undefined;
+            this.tok = undefined;
             return true;
         }
 
@@ -33,7 +37,7 @@ export class HTTPDriver implements IDriver {
                     .Execute()
             );
 
-            this.token = token;
+            this.tok = token;
             return true;
         } catch (e) {
             console.error("Error occurred during authentication: ", e.join(", "));
@@ -48,7 +52,7 @@ export class HTTPDriver implements IDriver {
                 .AddFields({ username, email, password })
                 .Execute());
 
-        this.token = token!;
+        this.tok = token!;
         return true;
     }
 
@@ -89,12 +93,12 @@ export class HTTPDriver implements IDriver {
                 .AddField("confirmationKey", confirmationKey)
                 .Execute()
         );
-        this.token = confirmationKey;
+        this.tok = confirmationKey;
         return true;
     }
 
     public async Self(): Promise<IUserSelf | null> {
-        if (!this.token) {
+        if (!this.tok) {
             return null;
         }
 
@@ -107,7 +111,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async UpdateSensitive({ oldPassword, username, password, email }: Partial<IUserSensitiveUpdate>): Promise<true> {
-        if (!this.token) {
+        if (!this.tok) {
             throw ["You must be logged in to perform this action."];
         }
         if (!oldPassword) {
@@ -135,7 +139,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async UpdateAvatar(id: number): Promise<true> {
-        if (!this.token) {
+        if (!this.tok) {
             throw ["You must be logged in to perform this action."];
         }
 
@@ -151,7 +155,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async ListVariables(): Promise<string[]> {
-        if (!this.token)
+        if (!this.tok)
             return [];
 
         return (await (
@@ -163,7 +167,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async GetVariable(name: string): Promise<string | null> {
-        if (!this.token)
+        if (!this.tok)
             return null;
 
         return (await (
@@ -175,7 +179,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async SetVariable(name: string, value: string): Promise<true> {
-        if (!this.token)
+        if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
         await (
@@ -190,7 +194,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async DeleteVariable(name: string): Promise<true> {
-        if (!this.token)
+        if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
         await (
@@ -204,7 +208,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async Create<T extends IView>(type: EntityType, data: Partial<T>): Promise<T> {
-        if (!this.token) {
+        if (!this.tok) {
             throw ["You must be logged in to perform this action."];
         }
 
@@ -222,20 +226,27 @@ export class HTTPDriver implements IDriver {
         )!;
     }
 
-    public async Read<T extends IView>(type: EntityType, query: Partial<ISearchQuery>): Promise<T[]> {
-        return (
-            await (
-                new APIRequest<T[]>(`${API_ENTITY(type)}`)
-                    .Method("GET")
-                    .AddHeader("Authorization", this.token ? `Bearer ${this.token}` : undefined)
-                    .AddFields(query as Dictionary<string | number | (string | number)[]>)
-                    .Execute()
-            )
-        ) || [];
+    public async Read<T extends IView>(type: EntityType, query: Partial<ISearchQuery>, cons: new (data: T) => T): Promise<T[]> {
+        let resp = (
+            (
+                await (
+                    new APIRequest<T[]>(`${API_ENTITY(type)}`)
+                        .Method("GET")
+                        .AddHeader("Authorization", this.tok ? `Bearer ${this.token}` : undefined)
+                        .AddFields(query as Dictionary<string | number | (string | number)[]>)
+                        .Execute()
+                )
+            ) || []
+        );
+
+        if (!cons)
+            return resp;
+        else
+            return resp.map(d => new cons(d));
     }
 
     public async Update<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
-        if (!this.token)
+        if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
         return (
@@ -250,7 +261,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async Delete<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
-        if (!this.token)
+        if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
         return (
@@ -264,7 +275,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async Upload(file: Blob): Promise<IFile> {
-        if (!this.token)
+        if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
         return (
@@ -276,6 +287,10 @@ export class HTTPDriver implements IDriver {
                     .Execute()
             )
         )!;
+    }
+
+    public Preload(){
+        /* NoOp */
     }
 
     /*public Subscribe<T extends IView>(type: EntityType, query: Partial<ISearchQuery>): Promise<HTTPDriverSubscription<T>>{

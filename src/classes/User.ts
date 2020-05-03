@@ -6,7 +6,6 @@
  */
 
 import Validate from "validator";
-import { Intercept } from "../global";
 import { EntityType, IUserCredential, IUserSensitiveUpdate, ISearchQuery } from "../interfaces/API";
 import { IUser, IUserSelf } from "../interfaces/Views";
 

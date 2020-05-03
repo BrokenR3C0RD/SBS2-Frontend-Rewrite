@@ -5,7 +5,14 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
+export {};
+
 import { IDriver } from "./interfaces/Driver"
 
 
-declare const Intercept: IDriver;
+declare global {
+    interface Window {
+        Intercept: IDriver
+    }
+    const Intercept: IDriver;
+}
