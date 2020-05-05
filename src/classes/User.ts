@@ -8,6 +8,7 @@
 import Validate from "validator";
 import { EntityType, IUserCredential, IUserSensitiveUpdate, ISearchQuery } from "../interfaces/API";
 import { IUser, IUserSelf } from "../interfaces/Views";
+import { API_ENTITY } from "../constants/ApiRoutes";
 
 export class User implements IUser {
     readonly id: number;
@@ -22,8 +23,15 @@ export class User implements IUser {
         this.createDate = new Date(createDate);
     }
 
-    static async Get(query: Partial<ISearchQuery>): Promise<User[]>{
+    static async Get(query: Partial<ISearchQuery>): Promise<User[]> {
         return Intercept.Read(EntityType.User, query, User);
+    }
+
+    public Avatar(size: number = 200, square: boolean = true): string {
+        if (this.avatar != 0)
+            return `${API_ENTITY("File")}/raw/${this.avatar}?size=${size}&square=${square}`;
+        else
+            return `https://www.tinygraphs.com/labs/isogrids/hexa/${this.username}?theme=seascape&size=${size}`;
     }
 }
 
@@ -74,13 +82,13 @@ export class FullUser extends User implements IUserSelf {
         return (await this.Self())!;
     }
 
-    static async UpdateSensitive({ oldPassword, username, password, email }: Partial<IUserSensitiveUpdate>): Promise<FullUser> {
-        await Intercept.UpdateSensitive({oldPassword, username, password, email});
+    static async UpdateSensitive({ oldPassword, username, password, email }: Partial<IUserSensitiveUpdate> & { oldPassword: string }): Promise<FullUser> {
+        await Intercept.UpdateSensitive({ oldPassword, username, password, email });
         return (await this.Self())!;
     }
 
     static async UpdateAvatar(avatar: File): Promise<FullUser> {
-        if(!avatar.type.startsWith("image/")){
+        if (!avatar.type.startsWith("image/")) {
             throw ["The avatar must be an image file."];
         }
 

@@ -7,8 +7,8 @@
 
 import { IDriver } from "../interfaces/Driver";
 import { HTTPDriver } from "./HTTPDriver";
-import { EntityType, ISearchQuery, IUserCredential } from "../interfaces/API";
-import { IView, IUser } from "../interfaces/Views";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
+import { IView, IUser, IUserSelf } from "../interfaces/Views";
 import { Dictionary } from "../interfaces/Generic";
 import { Entity } from "./Entity";
 
@@ -20,7 +20,7 @@ class CachedItem<T extends IView> {
     private data: T;
     private entityType: EntityType;
     private lastUpdate: Date = new Date();
-    private threshold: number = 30_000; // 30 seconds
+    private threshold: number = 30000; // 30 seconds
 
     public get Expired(): boolean {
         return (Date.now() - this.threshold) > this.lastUpdate.getTime()
@@ -57,7 +57,7 @@ class CachedRequest<T extends IView> {
     private data: number[];
     private entityType: EntityType;
     private lastUpdate: Date = new Date();
-    private threshold: number = 30_000; // 30 seconds
+    private threshold: number = 30000; // 30 seconds
 
     public get Expired(): boolean {
         return (Date.now() - this.threshold) > this.lastUpdate.getTime()
@@ -108,8 +108,8 @@ export class CacheDriver implements IDriver {
     private currentDriver: IDriver = new HTTPDriver;
     private cache: DriverCache = {};
     private reqcache: Dictionary<CachedRequest<IView>> = {};
-
     public token: string = "";
+    private onLogin: (token: string) => unknown = () => {};
 
     public constructor() {
         for (let key in EntityType) {
@@ -140,6 +140,8 @@ export class CacheDriver implements IDriver {
             });
             if (this.reqcache[hash]) {
                 this.reqcache[hash].Fresh(ids);
+            } else {
+                this.reqcache[hash] = new CachedRequest(type, req, ids);
             }
             return resp;
         }
@@ -214,9 +216,9 @@ export class CacheDriver implements IDriver {
 
     public async Delete<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
         let res = await this.currentDriver.Delete(type, data);
-        if(res == null)
+        if (res == null)
             return null;
-    
+
         // If the item's cached, we'll remove it. No need to keep data that isn't going to be used anymore.
         this.cache[type] = this.cache[type] || {};
         delete this.cache[type]![res.id];
@@ -232,12 +234,14 @@ export class CacheDriver implements IDriver {
 
         await this.currentDriver.Authenticate(token);
         this.token = token;
+        await this.onLogin(token);
         return true;
     }
 
     public async Login(creds: Partial<IUserCredential>): Promise<true> {
         await this.currentDriver.Login(creds);
         this.token = this.currentDriver.token;
+        await this.onLogin(this.token);
         return true;
     }
 
@@ -249,7 +253,63 @@ export class CacheDriver implements IDriver {
     public async Confirm(token: string): Promise<true> {
         await this.currentDriver.Confirm(token);
         this.token = this.currentDriver.token;
+        await this.onLogin(this.token);
         return true;
+    }
+
+    public async Self(): Promise<IUserSelf | null> {
+        // We don't bother caching this since this is also how we detect login status.
+        return this.currentDriver.Self();
+    }
+
+    public async UpdateSensitive(update: IUserSensitiveUpdate): Promise<true> {
+        await this.currentDriver.UpdateSensitive(update);
+        let { id, username, avatar, createDate } = (await this.Self())!;
+
+        this.cache[EntityType.User] = this.cache[EntityType.User] || {};
+        let ownCacheItem = this.cache[EntityType.User]![id];
+        if (ownCacheItem)
+            ownCacheItem.Fresh({ id, username, avatar, createDate } as IView);
+        
+        return true;
+    }
+
+    public async UpdateAvatar(avatarid: number): Promise<true> {
+        await this.currentDriver.UpdateAvatar(avatarid);
+        let { id, username, avatar, createDate } = (await this.Self())!;
+
+        this.cache[EntityType.User] = this.cache[EntityType.User] || {};
+        let ownCacheItem = this.cache[EntityType.User]![id];
+        if (ownCacheItem)
+            ownCacheItem.Fresh({ id, username, avatar, createDate } as IView);
+        
+        return true;
+    }
+
+    // We don't cache uploaded files
+    public async Upload(file: Blob){
+        return await this.currentDriver.Upload(file);
+    }
+
+    // TODO: Cache these maybe?
+    public async ListVariables(){
+        return await this.currentDriver.ListVariables();
+    }
+
+    public async GetVariable(name: string){
+        return await this.currentDriver.GetVariable(name);
+    }
+
+    public async SetVariable(name: string, value: string){
+        return await this.currentDriver.SetVariable(name, value);
+    }
+    
+    public async DeleteVariable(name: string){
+        return await this.currentDriver.DeleteVariable(name);
+    }
+
+    public OnLogin(handler: (token: string) => unknown){
+        this.onLogin = handler;
     }
 }
 

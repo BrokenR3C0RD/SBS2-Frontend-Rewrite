@@ -32,8 +32,8 @@ export class HTTPDriver implements IDriver {
         try {
             await (
                 new APIRequest<string>(`${API_ENTITY("User")}/me`)
-                    .Method("POST")
-                    .AddField("Authorization", `Bearer ${token}`)
+                    .Method("GET")
+                    .AddHeader("Authorization", `Bearer ${token}`)
                     .Execute()
             );
 

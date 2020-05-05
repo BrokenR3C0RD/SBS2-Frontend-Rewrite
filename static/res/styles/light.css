@@ -1,0 +1,59 @@
+:root {
+    --primary-bg: white;
+    --scroll-thumb: #878787;
+    --secondary-bg: #dedede;
+    --primary-text: black;
+    --primary-accent: #999;
+    --secondary-accent: #ddd;
+    --input-color: #333;
+    --sidebar-background: rgba(255, 255, 255, 0.98);
+    --sidebar-selected: #777;
+    --sidebar-selected-hover: #bbb;
+    --cell-background: rgba(255, 255, 255, 0.8);
+    --pubkey-color: crimson;
+    --background-tile: url("/res/img/tiles_light.png");
+    --link-color: #66c;
+    --shadow: rgba(0, 0, 0, 0.5);
+
+    /* THIS IS THE SBHIGHLIGHT SECTION */
+    /*
+      NOTE: "function" means "built-in function OR VARIABLE"
+      (actual functions use the "statement" classname)
+      This is for backwards compatibility with the old CSS.
+      old SBhighlight couldn't tell functions and variables apart,
+      and "function" was used for all builtins.
+    */
+    /* some vars duplicate color because that's how i want default */
+    --highlight-bg: #F8F8F8F8;
+    --highlight-text: #000000;
+    --highlight-string: #009e25;
+    --highlight-number: #e9077f;
+    --highlight-keyword: #0081eb;
+    --highlight-question: #0081eb;
+    --highlight-kwoperator: #0081eb;
+    --highlight-tostep: #0081eb;
+    --highlight-constant: #47546c;
+    --highlight-comment: #366f2f;
+    --highlight-label: #fa7900;
+    --highlight-variable: #3b3308;
+    --highlight-builtin: #6646f6;
+    --highlight-statement: #04867f;
+    --highlight-defname: #04867f;
+    --highlight-backslash: #888888;
+    --highlight-operator: #000000;
+    --highlight-equals: #000000;
+}
+
+/* @supports (backdrop-filter: none) or (-webkit-backdrop-filter: none) {
+    @media only screen and (min-width: 800px) {
+        :root {
+            --sidebar-background: rgba(255, 255, 255, 0.65);
+        }
+    }
+} */
+
+@media only screen and (max-width: 800px) {
+    :root {
+        --sidebar-background: rgb(255, 255, 255);
+    }
+}

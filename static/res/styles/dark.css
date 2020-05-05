@@ -1,0 +1,63 @@
+:root[data-theme="dark"] {
+    --primary-bg: #111;
+    --scroll-thumb: #666;
+    --secondary-bg: #222;
+    --primary-text: white;
+    --primary-accent: #878787;
+    --input-color: #878787;
+    --secondary-accent: #333;
+    --sidebar-background: rgba(16, 16, 16, 0.8);
+    --sidebar-selected: #999;
+    --sidebar-hover: #555;
+    --cell-background: rgba(27, 27, 27, 0.7);
+    --pubkey-color: #ccc;
+    --background-tile: url("/res/img/tiles_dark.png");
+    --link-color: #99b;
+    --shadow: rgba(0, 0, 0, 0.5);
+
+    /* THIS IS THE SBHIGHLIGHT SECTION */
+    /*
+      NOTE: "function" means "built-in function OR VARIABLE"
+      (actual functions use the "statement" classname)
+      This is for backwards compatibility with the old CSS.
+      old SBhighlight couldn't tell functions and variables apart,
+      and "function" was used for all builtins.
+    */
+    /* some vars duplicate color because that's how i want default */
+    --highlight-bg: #000000;
+    --highlight-text: #eeeeee;
+    --highlight-string: #59ee79;
+    --highlight-number: #f359ab;
+    --highlight-keyword: #2494f0;
+    --highlight-question: #2494f0;
+    --highlight-kwoperator: #2494f0;
+    --highlight-tostep: #2494f0;
+    --highlight-constant: #aeb5c2;
+    --highlight-comment: #a1f198;
+    --highlight-label: #f4963e;
+    --highlight-variable: #fbf4cb;
+    --highlight-builtin: #8d7ff5;
+    --highlight-statement: #7ff5ef;
+    --highlight-defname: #7ff5ef;
+    --highlight-backslash: #777777;
+    --highlight-operator: #eeeeee;
+    --highlight-equals: #eeeeee;
+}
+
+:root[data-theme="dark"] #content input:not([type="checkbox"]):not([type="submit"]), :root[data-theme="dark"] textarea {
+    box-shadow: 1px 1px 5px var(--shadow);
+}
+
+/* @supports (backdrop-filter: none) or (-webkit-backdrop-filter: none) {
+    @media only screen and (min-width: 800px) {
+        :root[data-theme="dark"] {
+            --sidebar-background: rgba(16, 16, 16, 0.85);
+        }
+    }
+} */
+
+@media only screen and (max-width: 800px) {
+    :root[data-theme="dark"] {
+        --sidebar-background: rgb(16, 16, 16);
+    }
+}

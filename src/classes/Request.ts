@@ -86,12 +86,13 @@ export default class APIRequest<T> {
         try {
             let response = await fetch(n.toString(), {
                 signal,
+                method: this.method || "GET",
                 headers: {
-                    "Content-Type": this.formData ? "application/json" : "multipart/form-data",
+                    "Content-Type": this.formData ? "multipart/form-data" : "application/json",
                     "Accept": "application/json",
                     ...this.headers
                 },
-                body: hasBody ? this.rawBody || this.formData || JSON.stringify(this.data) : null
+                body: hasBody ? this.rawBody || this.formData || JSON.stringify(this.data) : undefined
             });
 
             if (response.status == 200) {
@@ -102,7 +103,7 @@ export default class APIRequest<T> {
             } else if(response.status == 404){
                 return null;
             } else {
-                let err = await response.json();
+                let err = (response.headers.get("content-type")?.includes("json")) ? await response.json() : await response.text();
                 if (typeof err == "string") {
                     // Since Random hasn't switched everything to a JSON object yet, we still have to be able to deal with string errors.
                     throw [err];

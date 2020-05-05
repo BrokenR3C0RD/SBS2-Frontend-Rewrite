@@ -8,9 +8,16 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./components/App";
+import "./classes/CacheDriver"; // This loads in window.Intercept
+
+let token = (sessionStorage.getItem("sbs-auth") || localStorage.getItem("sbs-auth"));
+Intercept.OnLogin((token) => localStorage.setItem("sbs-auth", token));
+
+if (token)
+    Intercept.Authenticate(token);
 
 const Index = () => {
-  return <App />;
+    return <App />;
 };
 
 ReactDOM.render(<Index />, document.getElementById("root"));

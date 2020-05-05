@@ -7,12 +7,16 @@
 
 export {};
 
-import { IDriver } from "./interfaces/Driver"
-
+import { CacheDriver } from "./classes/CacheDriver";
+import { FullUser } from "./classes/User";
 
 declare global {
     interface Window {
-        Intercept: IDriver
+        Intercept: CacheDriver;
     }
-    const Intercept: IDriver;
+    const Intercept: CacheDriver;
+    type Action = {
+        type: "TOGGLE_LEFT" | "TOGGLE_RIGHT" | "USER_CHANGE",
+        user?: FullUser | null
+    }
 }
