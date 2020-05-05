@@ -8,11 +8,11 @@
 
 import Validate from "validator";
 import { API_ENTITY } from "../constants/ApiRoutes";
-import { IUserCredential, IUserSensitiveUpdate, EntityType, ISearchQuery } from "../interfaces/API";
-import { IDriver, ISubscription } from "../interfaces/Driver";
-import APIRequest from "./Request";
-import { IUserSelf, IView, IFile } from "../interfaces/Views";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
+import { IDriver } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
+import { IFile, IUserSelf, IView } from "../interfaces/Views";
+import APIRequest from "./Request";
 
 export class HTTPDriver implements IDriver {
     private tok?: string;
@@ -93,7 +93,7 @@ export class HTTPDriver implements IDriver {
                 .AddField("confirmationKey", confirmationKey)
                 .Execute()
         );
-        this.tok = confirmationKey;
+        this.tok = token!;
         return true;
     }
 

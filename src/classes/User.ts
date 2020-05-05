@@ -6,9 +6,9 @@
  */
 
 import Validate from "validator";
-import { EntityType, IUserCredential, IUserSensitiveUpdate, ISearchQuery } from "../interfaces/API";
-import { IUser, IUserSelf } from "../interfaces/Views";
 import { API_ENTITY } from "../constants/ApiRoutes";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
+import { IUser, IUserSelf } from "../interfaces/Views";
 
 export class User implements IUser {
     readonly id: number;

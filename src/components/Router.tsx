@@ -9,12 +9,20 @@ import React from "react";
 import { Router } from "@reach/router";
 import IndexPage from "./pages/Index";
 import LoginPage from "./pages/Login";
+import UserPage from "./pages/User";
+import ContentPage from "./pages/Page";
+import ErrorBoundary from "./functional/ErrorBoundary";
 
 export default () => {
     return (
-        <Router>
-            <IndexPage path="/" />
-            <LoginPage path="/login" />
-        </Router>
+        <ErrorBoundary>
+            <Router>
+                <IndexPage path="/" />
+                <LoginPage path="/login" />
+                <UserPage path="/user/:uid" />
+                <ContentPage path="/pages/:pid" />
+            </Router>
+        </ErrorBoundary>
+
     );
 }

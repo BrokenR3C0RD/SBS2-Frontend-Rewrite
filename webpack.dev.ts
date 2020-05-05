@@ -5,7 +5,8 @@ import HtmlWebPackPlugin from "html-webpack-plugin";
 import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
 
 const htmlPlugin = new HtmlWebPackPlugin({
-    template: "./src/index.html"
+    template: "./src/index.html",
+
 });
 
 const config: webpack.Configuration = {
@@ -15,10 +16,14 @@ const config: webpack.Configuration = {
         // Add '.ts' and '.tsx' as resolvable extensions.
         extensions: [".ts", ".tsx", ".js", ".json"]
     },
+    output: {
+        publicPath: "/"
+    },
     devServer: {
         contentBase: path.join(__dirname, "static"),
         historyApiFallback: true
     },
+    devtool: "eval-source-map",
     module: {
         rules: [
             {

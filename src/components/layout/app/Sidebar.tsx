@@ -6,11 +6,16 @@
  */
 
 import React from "react";
+import { FullUser } from "../../../classes/User";
+import { Link } from "@reach/router";
 
 export default (({
     open
 }) => {
-    return (<div id="nav-sidebar" data-open={open}>
+    return (<div id="sidebar" data-open={open}>
+        <ul>
+            <li><Link to="/">Home</Link></li>
+        </ul>
 
     </div>);
 }) as React.FunctionComponent<{

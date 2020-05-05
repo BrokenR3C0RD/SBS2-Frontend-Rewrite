@@ -5,12 +5,12 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import { IDriver } from "../interfaces/Driver";
-import { HTTPDriver } from "./HTTPDriver";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
-import { IView, IUser, IUserSelf } from "../interfaces/Views";
+import { IDriver } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { Entity } from "./Entity";
+import { IUserSelf, IView } from "../interfaces/Views";
+import { HTTPDriver } from "./HTTPDriver";
+import { EventEmitter } from "./Event";
 
 type DriverCache = {
     [i in EntityType]?: Dictionary<CachedItem<IView>>
@@ -47,7 +47,9 @@ class CachedItem<T extends IView> {
     }
 
     public Fresh(data: T) {
-        this.data = data;
+        if(JSON.stringify(this.data) !== JSON.stringify(data))
+            this.data = data;
+        
         this.lastUpdate = new Date();
     }
 }
@@ -95,6 +97,19 @@ function hashRequest(type: EntityType, req: Partial<ISearchQuery>): string {
 }
 
 
+// Cache locking is kinda gross. I basically check to see if the it
+class CacheLock extends EventEmitter {
+    private value?: IView;
+    public Unlock(lockedItem: IView) {
+        this._Dispatch("done", this.value = lockedItem);
+    }
+    public async AwaitUnlock(): Promise<IView> {
+        if (this.value)
+            return this.value;
+        return (await this.ResolveOn("done"))[0] as IView;
+    }
+}
+
 // The Cache driver is basically a middleware driver. It allows switching between drivers seamlessly, caches data in
 // an expiry cache, and allows intercepting/modifying from SiteJS. The Cache is just what I use it for the most internally.
 //
@@ -104,14 +119,21 @@ function hashRequest(type: EntityType, req: Partial<ISearchQuery>): string {
 // If you want a good example of what a driver needs to implement, check out the HTTPDriver. If you're using TypeScript,
 // implement the IDriver interface. 
 
-export class CacheDriver implements IDriver {
+export class CacheDriver extends EventEmitter implements IDriver {
     private currentDriver: IDriver = new HTTPDriver;
     private cache: DriverCache = {};
     private reqcache: Dictionary<CachedRequest<IView>> = {};
     public token: string = "";
-    private onLogin: (token: string) => unknown = () => {};
+    private locked: Dictionary<Dictionary<CacheLock>> = {
+        [EntityType.Category]: {},
+        [EntityType.Comment]: {},
+        [EntityType.Content]: {},
+        [EntityType.User]: {}
+    };
 
     public constructor() {
+        super();
+
         for (let key in EntityType) {
             this.cache[key as EntityType] = {};
         }
@@ -155,35 +177,49 @@ export class CacheDriver implements IDriver {
             let ids = query["ids"]!;
             let uncached: number[] = [];
             for (let i = 0; i < ids.length; i++) {
-                let cacheItem = this.cache[type]![ids[i]];
-                if (cacheItem && !cacheItem.Expired) {
-                    results.push(await cacheItem.Get() as T);
+                if (uncached.indexOf(ids[i]) == -1 && this.locked[type][ids[i]]) {
+                    results.push((await this.locked[type][ids[i]].AwaitUnlock()) as T)
+                    continue;
                 } else {
-                    uncached.push(ids[i]);
+                    let cacheItem = this.cache[type]![ids[i]];
+                    if (cacheItem && !cacheItem.Expired) {
+                        results.push(await cacheItem.Get() as T);
+                    } else {
+                        if (uncached.indexOf(ids[i]) == -1) {
+                            this.locked[type][ids[i]] = new CacheLock();
+                            uncached.push(ids[i]);
+                        }
+                    }
                 }
             }
 
             if (uncached.length > 0) {
-                ((await this
+                let uncachedItems = ((await this
                     .currentDriver
-                    .Read<T>(type, { ids: uncached })) || [])
-                    .forEach(item => {
-                        let cacheItem = this.cache[type]![item.id];
-                        if (cacheItem) {
-                            cacheItem.Fresh(item);
-                        } else {
-                            this.cache[type]![item.id] = new CachedItem<T>(type, item);
-                        }
-                        results.push(item);
-                    });
+                    .Read<T>(type, { ids: uncached })) || []);
+
+                for (let i = 0; i < uncachedItems.length; i++) {
+                    let item = uncachedItems[i];
+                    let cacheItem = this.cache[type]![item.id];
+                    if (cacheItem) {
+                        cacheItem.Fresh(item);
+                    } else {
+                        this.cache[type]![item.id] = new CachedItem<T>(type, item);
+                    }
+                    await this.locked[type][item.id].Unlock(item);
+                    delete this.locked[type][item.id];
+                    results.push(item);
+                }
 
             }
         } else {
             results = (await this.cacheRequest(type, query)) as T[] || [];
         }
-        if (cons)
-            results.map(data => new cons(data));
 
+        if (cons)
+            results = results.map(data => new cons(data));
+
+        await this._Dispatch(`read-${type.toLowerCase()}`, results);
         return results;
     }
 
@@ -194,6 +230,7 @@ export class CacheDriver implements IDriver {
         this.cache[type] = this.cache[type] || {};
         this.cache[type]![res.id] = new CachedItem(type, res);
 
+        await this._Dispatch(`create-${type.toLowerCase()}`, res);
         return res;
     }
 
@@ -211,6 +248,8 @@ export class CacheDriver implements IDriver {
             this.cache[type]![res.id] = new CachedItem(type, res);
         }
 
+        await this._Dispatch(`update-${type.toLowerCase()}`, res);
+
         return res;
     }
 
@@ -223,25 +262,29 @@ export class CacheDriver implements IDriver {
         this.cache[type] = this.cache[type] || {};
         delete this.cache[type]![res.id];
 
+
+        await this._Dispatch(`delete-${type.toLowerCase()}`, res);
         return res;
     }
 
     public async Authenticate(token?: string): Promise<true> {
         if (!token) {
             this.token = "";
+            await this.currentDriver.Authenticate();
+            await this._Dispatch("authenticated", null);
             return true;
         }
 
         await this.currentDriver.Authenticate(token);
         this.token = token;
-        await this.onLogin(token);
+        await this._Dispatch("authenticated", token);
         return true;
     }
 
     public async Login(creds: Partial<IUserCredential>): Promise<true> {
         await this.currentDriver.Login(creds);
         this.token = this.currentDriver.token;
-        await this.onLogin(this.token);
+        await this._Dispatch("authenticated", this.token);
         return true;
     }
 
@@ -253,13 +296,15 @@ export class CacheDriver implements IDriver {
     public async Confirm(token: string): Promise<true> {
         await this.currentDriver.Confirm(token);
         this.token = this.currentDriver.token;
-        await this.onLogin(this.token);
+        await this._Dispatch("authenticated", this.token);
         return true;
     }
 
     public async Self(): Promise<IUserSelf | null> {
         // We don't bother caching this since this is also how we detect login status.
-        return this.currentDriver.Self();
+        let self = await this.currentDriver.Self();
+        await this._Dispatch("self", self);
+        return self;
     }
 
     public async UpdateSensitive(update: IUserSensitiveUpdate): Promise<true> {
@@ -270,7 +315,7 @@ export class CacheDriver implements IDriver {
         let ownCacheItem = this.cache[EntityType.User]![id];
         if (ownCacheItem)
             ownCacheItem.Fresh({ id, username, avatar, createDate } as IView);
-        
+
         return true;
     }
 
@@ -282,34 +327,30 @@ export class CacheDriver implements IDriver {
         let ownCacheItem = this.cache[EntityType.User]![id];
         if (ownCacheItem)
             ownCacheItem.Fresh({ id, username, avatar, createDate } as IView);
-        
+
         return true;
     }
 
     // We don't cache uploaded files
-    public async Upload(file: Blob){
+    public async Upload(file: Blob) {
         return await this.currentDriver.Upload(file);
     }
 
     // TODO: Cache these maybe?
-    public async ListVariables(){
+    public async ListVariables() {
         return await this.currentDriver.ListVariables();
     }
 
-    public async GetVariable(name: string){
+    public async GetVariable(name: string) {
         return await this.currentDriver.GetVariable(name);
     }
 
-    public async SetVariable(name: string, value: string){
+    public async SetVariable(name: string, value: string) {
         return await this.currentDriver.SetVariable(name, value);
     }
-    
-    public async DeleteVariable(name: string){
-        return await this.currentDriver.DeleteVariable(name);
-    }
 
-    public OnLogin(handler: (token: string) => unknown){
-        this.onLogin = handler;
+    public async DeleteVariable(name: string) {
+        return await this.currentDriver.DeleteVariable(name);
     }
 }
 

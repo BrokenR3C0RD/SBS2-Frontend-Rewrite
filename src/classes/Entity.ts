@@ -5,9 +5,9 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import { IEntity, INamedEntity, IControlledEntity } from "../interfaces/Views";
-import { EntityType, CRUD } from "../interfaces/API";
+import { CRUD, EntityType } from "../interfaces/API";
 import { Dictionary } from "../interfaces/Generic";
+import { IControlledEntity, IEntity, INamedEntity } from "../interfaces/Views";
 import { FullUser, User } from "./User";
 
 export abstract class Entity implements IEntity {
@@ -30,7 +30,6 @@ export abstract class Entity implements IEntity {
             [ EntityType.User, [createUserId, editUserId]]
         ]);
     }
-
 
     public async GetCreateUser(): Promise<User | undefined> {
         return (await Intercept.Read(EntityType.User, { ids: [this.createUserId]}, User))[0];

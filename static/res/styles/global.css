@@ -56,21 +56,24 @@ a:hover {
 footer {
     background-color: black;
     color: white;
-    width: 100%;
-    padding: 6px;
-    margin-right: 20%;
+    width: 80%;
     margin-top: 1em;
     height: 2.5em;
     font-size: 1em;
-    line-height: 2em;
+    line-height: 2.5em;
     overflow: hidden;
+    padding-left: .5em;
 }
 
-footer button {
-    vertical-align: top;
+:root footer button {
+    display: inline-block;
+    vertical-align: middle;
     margin-bottom: 0;
-    width: 2em;
-    line-height: 2.3em;
+    width: 2.5em;
+    height: 2.5em;
+    line-height: 2.5em;
+    padding: 0;
+    float: right;
 }
 
 nav {
@@ -162,7 +165,6 @@ nav #user-info {
     display: block;
     float: right;
     line-height: 1.5em;
-    margin-right: .75em;
     height: 1.5em;
     width: fit-content;
     max-width: calc(100% - 4.5em);
@@ -173,14 +175,13 @@ nav #user-info .user-avatar {
     height: 1.5em;
     line-height: 1.5em;
     display: inline-block;
-    margin: 0 1em;
 }
 nav #show-sidebar {
     display: block;
     float: right;
     width: 1.5em;
     height: 1.5em;
-    margin-right: .5em;
+    margin: 0 .25em;
     transition: transform .3s;
 }
 nav #show-sidebar[data-open="true"] {
@@ -330,24 +331,46 @@ nav #user-info[data-open="true"] #user-name:before {
 nav #user-info ul {
     display: none;
 }
+nav #user-info h2 {
+    margin-top: 0;
+}
 
 nav #user-info[data-open="true"] ul {
     display: block;
     position: fixed;
     background: black;
     top: 0;
-    right: 0;
+    right: 1em;
     margin-top: 1.5em;
-    width: 10em;
+    max-width: 15em;
+    width: max-content;
     list-style: none;
     box-shadow: -2px 2px 10px var(--shadow);
+    padding: 1em;
+}
+
+nav #user-info[data-open="true"] ul li {
+    padding-left: 1em;
+
 }
 
 nav #user-info[data-open="true"] ul li a:hover {
     cursor: pointer;
 }
 
-#watch-sidebar {
+nav #user-info button {
+    padding: 0;
+    margin: 0;
+}
+nav #user-info button .user-avatar {
+    padding: 0;
+    margin: 0;
+    width: 2em;
+    font-size: 1em;
+    vertical-align: middle;
+}
+
+#sidebar {
     position: fixed;
     z-index: 10000;
     right: 0;
@@ -358,45 +381,43 @@ nav #user-info[data-open="true"] ul li a:hover {
     width: 20%;
     opacity: 1;
     overflow-y: auto;
-    box-shadow: -3px 0 5px var(--shadow);
 }
 
-#watch-sidebar ul>li>ul {
+#sidebar ul>li>ul {
     padding-left: 1em;
 }
 
-
-#watch-sidebar ul {
+#sidebar ul {
     font-size: 1.25rem;
 }
 
-#watch-sidebar h2 {
+#sidebar h2 {
     text-align: center;
 }
 
-#watch-sidebar ul {
+#sidebar ul {
     list-style-type: none;
 }
 
-#watch-sidebar>ul>li {
+#sidebar>ul>li {
     font-size: 1em;
 }
 
-#watch-sidebar ul>li>a {
+#sidebar ul>li>a {
     color: var(--link-color);
 }
 
-#watch-sidebar ul>li>a:hover {
+#sidebar ul>li>a:hover {
     color: var(--primary-accent);
     text-decoration: underline;
 }
 
 
-#watch-sidebar ul>li {
+#sidebar ul>li {
     margin-bottom: .5em;
 }
 
-#watch-sidebar ul>li[data-open]:before {
+#sidebar ul>li[data-open]:before {
     content: "+ ";
     color: var(--primary-text);
     font-weight: bold;
@@ -406,15 +427,15 @@ nav #user-info[data-open="true"] ul li a:hover {
     cursor: pointer;
 }
 
-#watch-sidebar ul>li[data-open="true"]:before {
+#sidebar ul>li[data-open="true"]:before {
     content: " -";
 }
 
-#watch-sidebar ul>li:not([data-open="true"])>ul {
+#sidebar ul>li:not([data-open="true"])>ul {
     display: none;
 }
 
-#watch-sidebar ul>li>ul {
+#sidebar ul>li>ul {
     margin-top: .5em;
 }
 
@@ -436,7 +457,7 @@ form input:not([type="checkbox"]), form button, form textarea {
     width: 100%;
 }
 
-#content input:not([type="checkbox"]), button, textarea, select  {
+input:not([type="checkbox"]), button, textarea, select  {
     display: block;
     color: var(--input-color);
     background-color: var(--secondary-accent);
@@ -446,35 +467,36 @@ form input:not([type="checkbox"]), form button, form textarea {
     resize: vertical;
 }
 
-#content input[type="checkbox"], input[type="submit"], input[type="radio"], button, select {
+
+input[type="checkbox"], input[type="submit"], input[type="radio"], button, select {
     cursor: pointer;
 }
 
-:root button, :root #content input[type="submit"], :root select {
+:root button, :root input[type="submit"], :root select {
     padding: .5em .3em;
     box-shadow: 1px 1px 4px var(--shadow);
 }
 
-#content label {
+label {
     display: block;
     margin-bottom: 1em;
 }
 
-#content input:disabled, button:disabled {
+input:disabled, button:disabled {
     filter: invert(25%);
 }
 
-#content input[type="submit"], button {
+input[type="submit"], button {
     color: var(--primary-text);
     transition: filter .1s;
 }
 
-#content input[type="submit"]:hover, button:hover {
+input[type="submit"]:hover, button:hover {
     color: var(--primary-text);
     filter: invert(75%);
 }
 
-#content input[type="submit"]:active, button:active {
+input[type="submit"]:active, button:active {
     filter: invert(25%);
 }
 
@@ -1424,10 +1446,10 @@ h2.crumbs {
     }
 
 
-    #watch-sidebar:not([data-open="true"]) {
+    #sidebar:not([data-open="true"]) {
         margin-right: -15em;
     }
-    #watch-sidebar {
+    #sidebar {
         width: 15em;
         overflow-x: hidden;
     }
@@ -1435,13 +1457,13 @@ h2.crumbs {
         margin-left: 0;
         width: 100%;
     }
-    nav, #watch-sidebar {
+    nav, #sidebar {
         font-size: 1.5em;
     }
 }
 
 @media only screen and (max-width: 1280px) and (min-width: 800px) {
-    #watch-sidebar {
+    #sidebar {
         transition: margin-right .3s;
     }
 }
@@ -1453,12 +1475,12 @@ h2.crumbs {
     nav #user-info .user-avatar {
         margin-right: 0;
     }
-    #watch-sidebar {
+    #sidebar {
         width: 120%;
         margin-right: -20%;
         transition: margin-right .3s;
     }
-    #watch-sidebar:not([data-open="true"]) {
+    #sidebar:not([data-open="true"]) {
         margin-right: -120%;
     }
     .grid:not([data-always]) {

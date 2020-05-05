@@ -6,14 +6,28 @@
  */
 
 import React, { useState } from "react";
-import { Link } from "@reach/router";
+import { Link, navigate } from "@reach/router";
+import { FullUser } from "../../../classes/User";
+import { Icon } from "@iconify/react";
+import LoginIcon from "@iconify/icons-mdi/login";
+import Form from "../../functional/Form";
+import { Dictionary } from "../../../interfaces/Generic";
 
-export default (({ dispatch }) => {
+export default (({ dispatch, user, userOpen }) => {
     const [query, setQuery] = useState<string>("");
+
+    function DoLogOut() {
+        Intercept.Authenticate();
+    }
+    async function DoLogin(data: Dictionary<string | number | boolean>) {
+        await FullUser.Login(data["username"] as string, data["password"] as string);
+    }
 
     return <nav>
         <span id="nav-brand">
-            <img onClick={() => dispatch({type: "TOGGLE_LEFT"})} src="/res/img/logo.svg" />
+            <Link to="/">
+                <img src="/res/img/logo.svg" />
+            </Link>
         </span>
 
         <span className="search-container">
@@ -24,11 +38,34 @@ export default (({ dispatch }) => {
             </div>
         </span>
 
-        <img src="/res/img/hamburger.png" id="show-sidebar" onClick={() => dispatch({type: "TOGGLE_RIGHT"})} />
-        <div id="user-info">
-
+        <img src="/res/img/hamburger.png" id="show-sidebar" onClick={() => dispatch({ type: "TOGGLE_SIDE" })} />
+        <div id="user-info" data-open={userOpen}>
+            {user && (
+                <>
+                    <img src={user?.Avatar(64)} className="user-avatar" onClick={() => dispatch({type: "TOGGLE_USER"})} />
+                    <ul>
+                        <b>{user.username}</b>
+                        <li><Link to={`/user/${user.id}`}><a>Profile</a></Link></li>
+                        <li><Link to="/usersettings"><a>Settings</a></Link></li>
+                        <li><a onClick={DoLogOut}>Logout</a></li>
+                    </ul>
+                </>
+            )}
+            {!user && <>
+                <button onClick={() => dispatch({type: "TOGGLE_USER"})}><Icon icon={LoginIcon} className="user-avatar" /></button>
+                <ul>
+                    <h2>Login</h2>
+                    <Form onSubmit={DoLogin}>
+                        <input type="text" name="username" placeholder="Username" autoComplete="username" />
+                        <input type="password" name="password" placeholder="Password" autoComplete="current-password" />
+                        <input type="submit" value="Login!" />
+                    </Form>
+                </ul>
+            </>}
         </div>
     </nav>
 }) as React.FunctionComponent<{
-    dispatch: React.Dispatch<Action>
+    dispatch: React.Dispatch<Action>,
+    user: FullUser | null | undefined,
+    userOpen: boolean
 }>;

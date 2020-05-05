@@ -7,17 +7,25 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
+import Boundary from "./components/functional/ErrorBoundary";
 import App from "./components/App";
 import "./classes/CacheDriver"; // This loads in window.Intercept
 
 let token = (sessionStorage.getItem("sbs-auth") || localStorage.getItem("sbs-auth"));
-Intercept.OnLogin((token) => localStorage.setItem("sbs-auth", token));
+Intercept.On("authenticated", (token) => token ? localStorage.setItem("sbs-auth", token as string) : localStorage.removeItem("sbs-auth"));
 
-if (token)
-    Intercept.Authenticate(token);
+window.addEventListener("storage", (evt) => {
+    if(evt.key == "sbs-auth"){
+        Intercept.Authenticate(sessionStorage.getItem("sbs-auth") || localStorage.getItem("sbs-auth") || undefined);
+    }
+});
 
-const Index = () => {
-    return <App />;
-};
+Intercept
+    .Authenticate(token || undefined)
+    .finally(() => {
+        const Index = () => {
+            return <App />;
+        };
 
-ReactDOM.render(<Index />, document.getElementById("root"));
+        ReactDOM.render(<Boundary><Index /></Boundary>, document.getElementById("root"));
+    });

@@ -6,22 +6,24 @@
  */
 
 import React from "react";
-import { RouteComponentProps } from "@reach/router";
+import { RouteComponentProps, Link } from "@reach/router";
 import Grid from "../layout/Grid";
 import Cell from "../layout/Cell";
 import Form from "../functional/Form";
+import { navigate } from "@reach/router"
 import { Dictionary } from "../../interfaces/Generic";
 import { FullUser } from "../../classes/User";
 
 export default (() => {
-    async function DoLogin(data: Dictionary<string | number | boolean>){
+    async function DoLogin(data: Dictionary<string | number | boolean>) {
         await FullUser.Login(data["username"] as string, data["password"] as string);
+        navigate("/");
     }
-    async function DoRegister(data: Dictionary<string | number | boolean>){
+    async function DoRegister(data: Dictionary<string | number | boolean>) {
         await FullUser.Register({
             username: data["username"] as string,
             password: data["password"] as string,
-            email:    data["email"]    as string
+            email: data["email"] as string
         })
     }
 
@@ -29,6 +31,7 @@ export default (() => {
         cols={["1fr", "1fr"]}
         rows={["min-content"]}
         gapX="1em"
+        gapY="1em"
     >
         <Cell x={1} y={1}>
             <h2>Login</h2>

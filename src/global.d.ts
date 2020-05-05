@@ -16,7 +16,7 @@ declare global {
     }
     const Intercept: CacheDriver;
     type Action = {
-        type: "TOGGLE_LEFT" | "TOGGLE_RIGHT" | "USER_CHANGE",
+        type: "TOGGLE_SIDE" | "TOGGLE_USER" | "RESET_MENUS" | "USER_CHANGE",
         user?: FullUser | null
     }
 }
