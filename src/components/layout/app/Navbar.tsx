@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from "react";
-import { Link, navigate } from "@reach/router";
+import Link from "next/link";
 import { FullUser } from "../../../classes/User";
 import { Icon } from "@iconify/react";
 import LoginIcon from "@iconify/icons-mdi/login";
@@ -25,8 +25,9 @@ export default (({ dispatch, user, userOpen }) => {
 
     return <nav>
         <span id="nav-brand">
-            <Link to="/">
+            <Link href="/"><a>
                 <img src="/res/img/logo.svg" />
+            </a>
             </Link>
         </span>
 
@@ -42,17 +43,17 @@ export default (({ dispatch, user, userOpen }) => {
         <div id="user-info" data-open={userOpen}>
             {user && (
                 <>
-                    <img src={user?.Avatar(64)} className="user-avatar" onClick={() => dispatch({type: "TOGGLE_USER"})} />
+                    <img src={user?.Avatar(64)} className="user-avatar" onClick={() => dispatch({ type: "TOGGLE_USER" })} />
                     <ul>
                         <b>{user.username}</b>
-                        <li><Link to={`/user/${user.id}`}><a>Profile</a></Link></li>
-                        <li><Link to="/usersettings"><a>Settings</a></Link></li>
+                        <li><Link href="/user/[uid]" as={`/user/${user.id}`}><a>Profile</a></Link></li>
+                        <li><Link href="/usersettings"><a>Settings</a></Link></li>
                         <li><a onClick={DoLogOut}>Logout</a></li>
                     </ul>
                 </>
             )}
             {!user && <>
-                <button onClick={() => dispatch({type: "TOGGLE_USER"})}><Icon icon={LoginIcon} className="user-avatar" /></button>
+                <button onClick={() => dispatch({ type: "TOGGLE_USER" })}><Icon icon={LoginIcon} className="user-avatar" /></button>
                 <ul>
                     <h2>Login</h2>
                     <Form onSubmit={DoLogin}>

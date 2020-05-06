@@ -336,6 +336,7 @@ nav #user-info h2 {
 }
 
 nav #user-info[data-open="true"] ul {
+    color: white;
     display: block;
     position: fixed;
     background: black;
@@ -1254,7 +1255,7 @@ div.comment .comment-content {
     background-color: var(--secondary-bg);
 }
 
-.comment-listeners li img{
+.comment-listeners li img {
     width: 2em;
 }
 

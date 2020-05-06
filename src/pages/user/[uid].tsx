@@ -5,15 +5,19 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { User } from "../../classes/User";
-import { RouteComponentProps } from "@reach/router";
 import useAsync from "../../hooks/Async";
-import UserView from "../views/User";
+import UserView from "../../components/views/User";
+import { useRouter } from "next/router";
+import { EntityType } from "../../interfaces/API";
 
 export default (({
-    uid
+    dispatch
 }) => {
+    const Router = useRouter();
+    const { uid } = Router.query;
+
     const [error, user] = useAsync(
         useCallback(() => {
             if (uid == null) {
@@ -26,11 +30,17 @@ export default (({
         }, [uid])
     );
 
+    useEffect(() => {
+        if (user !== undefined) {
+            dispatch({ type: "PAGE_LOADED" });
+            dispatch({ type: "CHANGE_TITLE", title: user?.[0]?.username || "" });
+        } else {
+            dispatch({ type: "CHANGE_TITLE", title: "User" });
+        }
+    }, [user]);
+
     return <>
-        {user === undefined && <h1>Loading...</h1>}
         {user !== undefined && (user === null || user.length == 0) && <h1>User not found.</h1>}
         {user?.[0] && <UserView user={user[0]} />}
     </>;
-}) as React.FunctionComponent<RouteComponentProps<{
-    uid: string
-}>>
+}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action> }>

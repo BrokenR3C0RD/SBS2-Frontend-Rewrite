@@ -20,16 +20,20 @@ export default class APIRequest<T> {
     private rawBody?: string;
 
     public constructor(loc: string, constructor?: new (data: any) => T) {
-        this.url = new URL(window.location.protocol + loc);
+        let protocol = "https:";
+        if (typeof window === "object")
+            protocol = window.location.protocol;
+
+        this.url = new URL(protocol + loc);
         this.cons = constructor;
     }
 
     public AddHeader(name: string, value: string | undefined): this {
-        if(value)
+        if (value)
             this.headers[name] = value;
         else
             delete this.headers[name];
-        
+
         return this;
     }
 
@@ -42,8 +46,8 @@ export default class APIRequest<T> {
         this.data = {
             ...this.data
         };
-        for(let key in dict){
-            if((dict as any)[key] != null){
+        for (let key in dict) {
+            if ((dict as any)[key] != null) {
                 this.data[key] = (dict as any)[key];
             }
         }
@@ -51,14 +55,14 @@ export default class APIRequest<T> {
     }
 
     public AddFormField(name: string, value: string | Blob): this {
-        if(!this.formData)
+        if (!this.formData)
             this.formData = new FormData();
-        
+
         this.formData.append(name, value);
         return this;
     }
 
-    public SetRawBody(value: string){
+    public SetRawBody(value: string) {
         this.rawBody = value;
         return this;
     }
@@ -100,7 +104,7 @@ export default class APIRequest<T> {
                     return new (this.cons)(await response.json());
                 else
                     return (await response.json() as T);
-            } else if(response.status == 404){
+            } else if (response.status == 404) {
                 return null;
             } else {
                 let err = (response.headers.get("content-type")?.includes("json")) ? await response.json() : await response.text();

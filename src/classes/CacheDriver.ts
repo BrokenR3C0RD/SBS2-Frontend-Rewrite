@@ -8,9 +8,10 @@
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
 import { IDriver } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { IUserSelf, IView } from "../interfaces/Views";
+import { IUserSelf, IView, ICategory, IComment, IContent, IUser, IFile } from "../interfaces/Views";
 import { HTTPDriver } from "./HTTPDriver";
 import { EventEmitter } from "./Event";
+import { Entity } from "./Entity";
 
 type DriverCache = {
     [i in EntityType]?: Dictionary<CachedItem<IView>>
@@ -47,9 +48,9 @@ class CachedItem<T extends IView> {
     }
 
     public Fresh(data: T) {
-        if(JSON.stringify(this.data) !== JSON.stringify(data))
+        if (JSON.stringify(this.data) !== JSON.stringify(data))
             this.data = data;
-        
+
         this.lastUpdate = new Date();
     }
 }
@@ -110,6 +111,17 @@ class CacheLock extends EventEmitter {
     }
 }
 
+/**
+ * A basic cache generated from the server side to improve hydration speed.
+ */
+type TransmittedCache = {
+    [EntityType.Category]: ICategory[],
+    [EntityType.Comment]: IComment[],
+    [EntityType.Content]: IContent[],
+    [EntityType.User]: IUser[],
+    [EntityType.File]: IFile[]
+}
+
 // The Cache driver is basically a middleware driver. It allows switching between drivers seamlessly, caches data in
 // an expiry cache, and allows intercepting/modifying from SiteJS. The Cache is just what I use it for the most internally.
 //
@@ -131,11 +143,19 @@ export class CacheDriver extends EventEmitter implements IDriver {
         [EntityType.User]: {}
     };
 
-    public constructor() {
+    public constructor(cacheData?: TransmittedCache) {
         super();
 
         for (let key in EntityType) {
             this.cache[key as EntityType] = {};
+        }
+
+        if (cacheData) {
+            for (let key in cacheData) {
+                for (let i = 0; i < cacheData[key as EntityType].length; i++) {
+                    this.cache[key as EntityType]![cacheData[key as EntityType][i].id] = new CachedItem(key as EntityType, cacheData[key as EntityType][i]);
+                }
+            }
         }
     }
 
@@ -352,6 +372,33 @@ export class CacheDriver extends EventEmitter implements IDriver {
     public async DeleteVariable(name: string) {
         return await this.currentDriver.DeleteVariable(name);
     }
-}
 
-window.Intercept = new CacheDriver();
+    public async CreateTransmittableCache(): Promise<TransmittedCache> {
+        let output: TransmittedCache = {
+            [EntityType.Category]: [],
+            [EntityType.Comment]: [],
+            [EntityType.Content]: [],
+            [EntityType.User]: [],
+            [EntityType.File]: []
+        };
+
+        for (let key in EntityType) {
+            let cache = this.cache[key as EntityType];
+            if (cache == null)
+                continue;
+
+            for (let id in cache) {
+                output[key as EntityType].push((await cache[id].Get()) as any);
+            }
+        }
+
+        return output;
+    }
+
+    public prereqs: Dictionary<Partial<ISearchQuery>[]> = {};
+    public Requires(queries: [EntityType, Partial<ISearchQuery>[]][]) {
+        for (let i = 0; i < queries.length; i++) {
+            this.prereqs[queries[i][0]] = (this.prereqs[queries[i][0]] || []).concat(queries[i][1]);
+        }
+    }
+}

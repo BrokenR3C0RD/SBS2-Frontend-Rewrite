@@ -7,14 +7,14 @@
 
 import React from "react";
 import { FullUser } from "../../../classes/User";
-import { Link } from "@reach/router";
+import Link from "next/link";
 
 export default (({
     open
 }) => {
     return (<div id="sidebar" data-open={open}>
         <ul>
-            <li><Link to="/">Home</Link></li>
+            <li><Link href="/"><a>Home</a></Link></li>
         </ul>
 
     </div>);

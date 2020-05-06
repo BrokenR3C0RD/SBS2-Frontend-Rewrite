@@ -10,19 +10,22 @@
   "dependencies": {
     "@iconify/icons-mdi": "^1.0.100",
     "@iconify/react": "^1.1.3",
-    "@reach/router": "^1.3.3",
     "core-js": "3",
+    "isomorphic-fetch": "^2.2.1",
     "moment": "^2.25.3",
+    "next": "^9.3.7-canary.12",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-helmet": "^6.0.0",
     "regenerator-runtime": "^0.13.5",
     "styled-jsx": "^3.2.5",
     "swr": "^0.2.0",
     "validator": "^13.0.0"
   },
   "scripts": {
-    "dev": "webpack-dev-server --open --config webpack.dev.ts",
-    "build": "webpack --mode production --config webpack.prod.ts"
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
   },
   "devDependencies": {
     "@babel/core": "^7.9.6",
@@ -31,7 +34,6 @@
     "@babel/preset-react": "^7.9.4",
     "@babel/preset-typescript": "^7.9.0",
     "@types/html-webpack-plugin": "^3.2.2",
-    "@types/reach__router": "^1.3.5",
     "@types/react": "^16.9.34",
     "@types/react-dom": "^16.9.7",
     "@types/styled-jsx": "^2.2.8",

@@ -5,13 +5,17 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import { Link, RouteComponentProps } from "@reach/router";
-import React from "react";
-import Cell from "../layout/Cell";
-import Gallery from "../layout/Gallery";
-import Grid from "../layout/Grid";
+import React, { useEffect } from "react";
+import Cell from "../components/layout/Cell";
+import Link from "next/link";
+import Gallery from "../components/layout/Gallery";
+import Grid from "../components/layout/Grid";
 
-export default (({}) => {
+export default (({ dispatch }) => {
+    useEffect(() => {
+        dispatch({ type: "PAGE_LOADED" });
+        dispatch({ type: "CHANGE_TITLE", title: "Home" });
+    }, [dispatch])
     return <>
         <Grid
             rows={["min-content", "1fr", "min-content", "min-content"]}
@@ -28,7 +32,7 @@ export default (({}) => {
             </Cell>
             <Cell x={1} y={2} width={2}>
                 <h2>
-                    <Link to="/pages/programs">Program Gallery</Link>
+                    <Link href="/pages/programs"><a>Program Gallery</a></Link>
                 </h2>
                 <p>
                     Here's a selection of programs submitted by users in our community!
@@ -39,11 +43,11 @@ export default (({}) => {
                     </Gallery>
                 </div>
                 <p>
-                    You can view all programs and resources 
+                    You can view all programs and resources
                 </p>
             </Cell>
             <Cell x={3} y={2} width={2} height={1}>
-               
+
             </Cell>
             <Cell x={1} y={4} width={4}>
                 <h2>About SmileBASIC Source</h2>
@@ -69,4 +73,4 @@ export default (({}) => {
             </Cell>
         </Grid>
     </>;
-}) as React.FunctionComponent<RouteComponentProps>;
+}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action> }>;

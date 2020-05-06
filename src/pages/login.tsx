@@ -5,19 +5,24 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import React from "react";
-import { RouteComponentProps, Link } from "@reach/router";
-import Grid from "../layout/Grid";
-import Cell from "../layout/Cell";
-import Form from "../functional/Form";
-import { navigate } from "@reach/router"
-import { Dictionary } from "../../interfaces/Generic";
-import { FullUser } from "../../classes/User";
+import React, { useEffect } from "react";
+import {useRouter} from "next/router";
+import Grid from "../components/layout/Grid";
+import Cell from "../components/layout/Cell";
+import Form from "../components/functional/Form";
+import { Dictionary } from "../interfaces/Generic";
+import { FullUser } from "../classes/User";
 
-export default (() => {
+export default (({ dispatch }) => {
+    const Router = useRouter();
+    useEffect(() => {
+        dispatch({ type: "PAGE_LOADED" });
+        dispatch({ type: "CHANGE_TITLE", title: "Log In"});
+    }, [])
+
     async function DoLogin(data: Dictionary<string | number | boolean>) {
         await FullUser.Login(data["username"] as string, data["password"] as string);
-        navigate("/");
+        await Router.push("/");
     }
     async function DoRegister(data: Dictionary<string | number | boolean>) {
         await FullUser.Register({
@@ -52,4 +57,4 @@ export default (() => {
             </Form>
         </Cell>
     </Grid>
-}) as React.FunctionComponent<RouteComponentProps>;
+}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action> }>;

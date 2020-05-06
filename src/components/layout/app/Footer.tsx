@@ -16,6 +16,6 @@ export default (() => {
         <div style={{ float: "left", height: "2em" }}>
             &copy; 2020 SmileBASIC Source
         </div>
-        <button><InlineIcon icon={document.documentElement.dataset.theme == "dark" ? ClosedSwitch : OpenSwitch} /></button>
+        <button><InlineIcon icon={ClosedSwitch} /></button>
     </footer>;
 }) as React.FunctionComponent;
