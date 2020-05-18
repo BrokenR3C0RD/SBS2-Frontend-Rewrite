@@ -84,7 +84,7 @@ export default class APIRequest<T> {
                 }
             }
         }
-
+        
         const hasBody = this.method !== "GET" && this.method !== "DELETE";
 
         try {

@@ -16,18 +16,18 @@ export default (({
     dispatch
 }) => {
     const Router = useRouter();
-    const { uid } = Router.query;
+    const { id } = Router.query;
 
     const [error, user] = useAsync(
         useCallback(() => {
-            if (uid == null) {
+            if (id == null) {
                 throw null;
-            } if (isNaN(+uid)) {
+            } if (isNaN(+id)) {
                 return Promise.resolve(null)
             } else {
-                return User.Get({ ids: [+uid] });
+                return User.Get({ ids: [+id] });
             }
-        }, [uid])
+        }, [id])
     );
 
     useEffect(() => {

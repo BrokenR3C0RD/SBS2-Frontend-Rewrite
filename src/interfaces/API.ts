@@ -59,9 +59,9 @@ export enum CRUD {
 }
 
 export enum EntityType {
-    Category = "Category",
-    Comment  = "Comment",
-    Content  = "Content",
-    File     = "File",
-    User     = "User",
+    Category = "category",
+    Comment  = "comment",
+    Content  = "content",
+    File     = "file",
+    User     = "user",
 }

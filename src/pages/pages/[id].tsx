@@ -13,82 +13,111 @@ import { Content } from "../../classes/Content";
 import DefaultPageView from "../../components/views/DefaultPage";
 import useAsync from "../../hooks/Async";
 import { EntityType } from "../../interfaces/API";
+import { IChainedRequest, IChainedResponse } from '../../interfaces/Driver';
+import { IView } from '../../interfaces/Views';
+import { User } from '../../classes/User';
+import { TransmittedCache } from '../../classes/CacheDriver';
 
 export const getServerSideProps: GetServerSideProps<{
-    preloadPage?: Content
+    preloadPage?: Content,
+    cache?: TransmittedCache | {}
 }> = async context => {
-    const { pid } = context.query;
+    const { id } = context.query;
     try {
-        if (typeof pid === "string" && !isNaN(+pid)) {
-            const page = await Intercept.Read(EntityType.Content, { ids: [+pid!] });
-            if (page?.[0])
-                return { props: { preloadPage: page![0] as Content } };
+        if (typeof id === "string" && !isNaN(+id)) {
+            const response = await Intercept.Chain([{
+                entity: EntityType.Content,
+                query: {
+                    ids: [+id]
+                }
+            } as IChainedRequest<IView>,
+            {
+                entity: EntityType.User,
+                constraint: [["createUserId", "editUserId"]]
+            } as IChainedRequest<IView>]);
+
+            if (response[EntityType.Content]?.[0])
+                return { props: { preloadPage: response[EntityType.Content]?.[0]! as Content, cache: await Intercept.CreateTransmittableCache() } };
         }
     } catch (e) {
-        console.error("Failure loading page ID " + pid + ": " + e.stack);
-    } finally {
-        return { props: {} };
+        console.error("Failure loading page ID " + id + ": " + e.stack);
     }
+    return { props: { cache: {} } };
 }
 
 const Page = (function ({
     dispatch,
-    preloadPage
+    preloadPage,
+    cache
 }) {
     // @ts-ignore
     const Router = useRouter();
     const { id } = Router.query;
+    const [tCache, setTCache] = useState<TransmittedCache>();
 
-    const [, page] = useAsync(
+    useEffect(() => {
+        if(JSON.stringify(cache) !== JSON.stringify(tCache))
+            setTCache(cache);
+    });
+
+    const [, response] = useAsync(
         useCallback(() => {
             if (id == null) {
                 throw null;
             }
+            if (tCache == null){
+                throw null;
+            }
+            Intercept.LoadTransmittedCache(tCache);
+
             if (isNaN(+id)) {
-                return Promise.resolve(null)
+                return Promise.resolve(null);
+            } else {
+                return Intercept.Chain([{
+                    entity: EntityType.Content,
+                    query: {
+                        ids: [+id]
+                    },
+                    constructor: Content as any
+                },
+                {
+                    entity: EntityType.User,
+                    constraint: [["createUserId", "editUserId"]],
+                    constructor: User as any
+                }]);
             }
-            if (preloadPage)
-                return Promise.resolve([new Content(preloadPage)]);
+        }, [id, tCache]));
 
-            else {
-                return Content.Get({ ids: [+id] });
-            }
-        }, [id])
-    );
+    const contents = response?.[EntityType.Content];
+    const users = response?.[EntityType.User];
 
-    const [, createUser] = useAsync(
-        useCallback(() => {
-            if (page == null || page?.[0] == null)
-                throw null;
-            else
-                return page[0].GetCreateUser();
-        }, [page])
-    );
-
-    const [, editUser] = useAsync(
-        useCallback(() => {
-            if (page == null || page?.[0] == null)
-                throw null;
-            else
-                return page[0].GetEditUser();
-        }, [page])
-    );
+    let [page, setPage] = useState<Content>();
+    let [createUser, setCreateUser] = useState<User>();
+    let [editUser, setEditUser] = useState<User>();
 
     useEffect(() => {
-        if (page !== undefined && (page === null || page.length === 0 || (createUser !== undefined && editUser !== undefined))) {
-            dispatch({ type: "PAGE_LOADED" });
-            dispatch({ type: "CHANGE_TITLE", title: page?.[0]?.name || "" });
-            dispatch({ type: "DISABLE_FOOTER" })
+        if (contents != null && users != null) {
+            if (contents[0]) {
+                setPage(page = contents[0] as Content);
+                setCreateUser(createUser = users.find(user => user.id == page!.createUserId)! as User);
+                setEditUser(editUser = users.find(user => user.id == page!.editUserId)! as User);
+            }
         }
-    }, [page, createUser, editUser]);
+        if(response){
+            dispatch({"type": "PAGE_LOADED"});
+            dispatch({"type": "CHANGE_TITLE", title: page?.name || ""});
+            dispatch({"type": "DISABLE_FOOTER"});
+        }
+    }, [response]);
+
 
     return <>
         <Head>
             {preloadPage && <meta property="og:title" content={preloadPage.name} />}
         </Head>
-        {page !== undefined && (page === null || page.length == 0) && <h1>Page not found.</h1>}
-        {page?.[0] && createUser && editUser && <DefaultPageView page={page[0]} createUser={createUser} editUser={editUser} />}
+        {contents != null && page == null && <h1>Page not found.</h1>}
+        {contents && page && createUser && editUser && <DefaultPageView page={page} createUser={createUser} editUser={editUser} />}
     </>;
-}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, preloadPage?: Content }>;
+}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, preloadPage?: Content, cache?: TransmittedCache }>;
 
 export default Page;

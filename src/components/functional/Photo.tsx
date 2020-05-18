@@ -42,8 +42,6 @@ export default (({
                 if (itemIdx == idx)
                     return;
 
-                console.log(itemIdx, idx);
-
                 move!(itemIdx!, idx!);
                 item.idx = idx;
             }

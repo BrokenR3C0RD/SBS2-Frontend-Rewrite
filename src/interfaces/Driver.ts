@@ -5,8 +5,20 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import { EntityType, ISearchQuery, IActivityFilter, IUserCredential, IUserSensitiveUpdate } from "./API";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "./API";
 import { IView, IUserSelf, IFile } from "./Views";
+
+export interface IChainedRequest<T extends IView> {
+    entity: EntityType;
+    query?: Partial<ISearchQuery>;
+    constraint?: string[][];
+    constructor?: new (v: T) => T;
+    fields?: (keyof T)[];
+}
+
+export type IChainedResponse = {
+    [i in EntityType]?: Partial<IView>[]
+}
 
 export interface IDriver {
     token: string;
@@ -31,6 +43,7 @@ export interface IDriver {
 
     Preload(requests: [EntityType, number[]][]): void;
 
+    Chain(request: IChainedRequest<IView>[]): Promise<IChainedResponse>
 
     Upload (file: Blob) : Promise<IFile>;
     // Subscribe <T extends IView> (type: EntityType, search: Partial<ISearchQuery>, constructor: new (data: IView) => T): Promise<ISubscription<T>>;

@@ -6,7 +6,7 @@
  */
 
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
-import { IDriver } from "../interfaces/Driver";
+import { IDriver, IChainedRequest, IChainedResponse } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
 import { IUserSelf, IView, ICategory, IComment, IContent, IUser, IFile } from "../interfaces/Views";
 import { HTTPDriver } from "./HTTPDriver";
@@ -98,7 +98,7 @@ function hashRequest(type: EntityType, req: Partial<ISearchQuery>): string {
 }
 
 
-// Cache locking is kinda gross. I basically check to see if the it
+// Cache locking is kinda gross.
 class CacheLock extends EventEmitter {
     private value?: IView;
     public Unlock(lockedItem: IView) {
@@ -114,7 +114,7 @@ class CacheLock extends EventEmitter {
 /**
  * A basic cache generated from the server side to improve hydration speed.
  */
-type TransmittedCache = {
+export type TransmittedCache = {
     [EntityType.Category]: ICategory[],
     [EntityType.Comment]: IComment[],
     [EntityType.Content]: IContent[],
@@ -147,16 +147,19 @@ export class CacheDriver extends EventEmitter implements IDriver {
         super();
 
         for (let key in EntityType) {
-            this.cache[key as EntityType] = {};
+            this.cache[EntityType[key as keyof typeof EntityType]] = {};
         }
+        if (cacheData)
+            this.LoadTransmittedCache(cacheData);
+    }
 
-        if (cacheData) {
-            for (let key in cacheData) {
-                for (let i = 0; i < cacheData[key as EntityType].length; i++) {
-                    this.cache[key as EntityType]![cacheData[key as EntityType][i].id] = new CachedItem(key as EntityType, cacheData[key as EntityType][i]);
-                }
+    public LoadTransmittedCache(cacheData: TransmittedCache): this {
+        for (let key in cacheData) {
+            for (let i = 0; i < cacheData[key as EntityType].length; i++) {
+                this.cache[key as EntityType]![cacheData[key as EntityType][i].id] = new CachedItem(key as EntityType, cacheData[key as EntityType][i]);
             }
         }
+        return this;
     }
 
     public async Preload(req: [EntityType, number[]][]) {
@@ -166,11 +169,12 @@ export class CacheDriver extends EventEmitter implements IDriver {
         }
     }
 
-    private async cacheRequest(type: EntityType, req: Partial<ISearchQuery>): Promise<IView[]> {
+    private async cacheRequest(type: EntityType, req: Partial<ISearchQuery>, failOnExpiry: boolean = false): Promise<IView[]> {
         let hash = hashRequest(type, req);
         if (this.reqcache[hash] && !this.reqcache[hash].Expired) {
             return (await this.reqcache[hash].Get())!;
         } else {
+            if (failOnExpiry) throw null;
             let resp = await this.currentDriver.Read<IView>(type, req);
             let ids = resp.map(view => view.id);
             resp.forEach(view => {
@@ -189,11 +193,11 @@ export class CacheDriver extends EventEmitter implements IDriver {
         }
     }
 
-    public async Read<T extends IView>(type: EntityType, query: Partial<ISearchQuery>, cons?: new (data: T) => T): Promise<T[]> {
+    public async Read<T extends IView>(type: EntityType, query: Partial<ISearchQuery>, cons?: new (data: T) => T, failOnExpiry: boolean = false): Promise<T[]> {
         this.cache[type] = this.cache[type] || {};
 
         let results: T[] = [];
-        if (Object.keys(query).length == 1 && query["ids"]) { // This is only requesting by IDs, so we might have cached this
+        if (Object.keys(query).length == 1 && query["ids"] && query["ids"].length > 0) { // This is only requesting by IDs, so we might have cached this
             let ids = query["ids"]!;
             let uncached: number[] = [];
             for (let i = 0; i < ids.length; i++) {
@@ -205,6 +209,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
                     if (cacheItem && !cacheItem.Expired) {
                         results.push(await cacheItem.Get() as T);
                     } else {
+                        if (failOnExpiry) throw null;
                         if (uncached.indexOf(ids[i]) == -1) {
                             this.locked[type][ids[i]] = new CacheLock();
                             uncached.push(ids[i]);
@@ -233,7 +238,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
 
             }
         } else {
-            results = (await this.cacheRequest(type, query)) as T[] || [];
+            results = (await this.cacheRequest(type, query, failOnExpiry)) as T[] || [];
         }
 
         if (cons)
@@ -373,6 +378,71 @@ export class CacheDriver extends EventEmitter implements IDriver {
         return await this.currentDriver.DeleteVariable(name);
     }
 
+    public async Chain(request: IChainedRequest<IView>[]): Promise<IChainedResponse> {
+        // Alright, we have to be super fancy with this to make it work right with caching.
+        // We basically have to attempt to create our own chain, but if any of the data is expired, we return null.
+        try {
+            let responses: IView[][] = [];
+            let output: IChainedResponse = {};
+            for (let i = 0; i < request.length; i++) {
+                let req = request[i];
+                let ids = req.query?.["ids"]?.map(i => +i) || [];
+                if (req.constraint) {
+                    for (let j = 0; j < req.constraint.length; j++) {
+                        let constraints = req.constraint[j];
+                        let res = responses[j];
+                        if (res.length == 0)
+                            throw null;
+                        if (constraints.length == 0)
+                            continue;
+
+                        for (let k = 0; k < constraints.length; k++) {
+                            ids = ids.concat(res.map(r => (r as any)[constraints[k]]).reduce((acc, r) => r instanceof Array ? acc.concat(r) : acc.concat([r]), [] as number[]));
+                        }
+                    }
+                }
+                let res = await this.Read(req.entity, {
+                    ...req.query || {},
+                    ids
+                }, req.constructor, true);
+
+                output[req.entity] = (output[req.entity] || []).concat(res.map(r => {
+                    if (req.fields == null)
+                        return r;
+
+                    let out: Partial<IView> = {};
+                    for (let i = 0; i < req.fields.length; i++) {
+                        out[req.fields[i]] = r[req.fields[i]] as any;
+                    }
+                    return out;
+                }));
+                responses.push(res);
+            }
+            return output;
+        } catch(e) {
+            let r = await this.currentDriver.Chain(request);
+            for (let k in r) {
+                let type = k as EntityType;
+
+                // We'll cache the entity we receive, but we need to make sure we're getting full objects here and not some trash we don't want.
+                this.cache[type] = this.cache[type] || {};
+
+                if (request.filter(req => req.entity == type).reduce((acc, r) => acc.concat(r.fields || []), [] as string[]).length > 0)
+                    continue;
+
+                for (let j = 0; j < r[type]!.length; j++) {
+                    let res = r[type]![j];
+                    if (this.cache[type]![res.id!]) {
+                        this.cache[type]![res.id!].Fresh(res as IView);
+                    } else {
+                        this.cache[type]![res.id!] = new CachedItem(type, res as IView);
+                    }
+                }
+            }
+            return r;
+        }
+    }
+
     public async CreateTransmittableCache(): Promise<TransmittedCache> {
         let output: TransmittedCache = {
             [EntityType.Category]: [],
@@ -382,7 +452,8 @@ export class CacheDriver extends EventEmitter implements IDriver {
             [EntityType.File]: []
         };
 
-        for (let key in EntityType) {
+        for (let k in EntityType) {
+            let key = EntityType[k as keyof typeof EntityType];
             let cache = this.cache[key as EntityType];
             if (cache == null)
                 continue;

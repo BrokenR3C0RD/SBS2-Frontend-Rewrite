@@ -22,8 +22,10 @@ export default function useAsync<T>(promise: () => Promise<T>): [any, T | null |
             if (!lpromise) {
                 setlPromise(promise());
             }
-        } catch (e) { }
+        } catch (e) { if(e != null) console.error(e.stack); }
     }, [promise]);
+
+
 
     useEffect(() => {
         if (!result && lpromise) {

@@ -7,9 +7,9 @@
 
 
 import Validate from "validator";
-import { API_ENTITY } from "../constants/ApiRoutes";
+import { API_ENTITY, API_CHAIN } from "../constants/ApiRoutes";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
-import { IDriver } from "../interfaces/Driver";
+import { IDriver, IChainedRequest, IChainedResponse } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
 import { IFile, IUserSelf, IView } from "../interfaces/Views";
 import APIRequest from "./Request";
@@ -289,8 +289,50 @@ export class HTTPDriver implements IDriver {
         )!;
     }
 
-    public Preload(){
+    public Preload() {
         /* NoOp */
+    }
+
+    public async Chain(request: IChainedRequest<IView>[]): Promise<IChainedResponse> {
+        let requests: string[] = [];
+        let constructors: { [i in EntityType]?: (new (i: IView) => IView) } = {};
+        let fields: { [i in EntityType]?: string[] } = {};
+        for (let i = 0; i < request.length; i++) {
+            let req = request[i];
+            let str = req.entity as string;
+
+            if (req.query)
+                str += "-" + JSON.stringify(req.query);
+
+            if (req.constraint)
+                for (let j = 0; j < req.constraint.length; j++)
+                    if (req.constraint[j].length > 0)
+                        str += req.constraint[j].map(constr => `.${j}${constr}`).join("");
+
+            requests.push(str);
+
+            if (req.constructor)
+                constructors[req.entity] = req.constructor;
+
+            if (req.fields)
+                fields[req.entity] = (fields[req.entity] || []).concat(req.fields).reduce((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, [] as string[]);
+        }
+
+        let response = await (
+            new APIRequest<IChainedResponse>(API_CHAIN)
+                .Method("GET")
+                .AddField("requests", requests)
+                .AddFields(fields)
+                .Execute()
+        ) || {};
+
+        for (let key in response) {
+            if (key in constructors) {
+                response[key as EntityType] = response[key as EntityType]!.map(res => new constructors[key as EntityType]!(res as IView));
+            }
+        }
+
+        return response;
     }
 
     /*public Subscribe<T extends IView>(type: EntityType, query: Partial<ISearchQuery>): Promise<HTTPDriverSubscription<T>>{

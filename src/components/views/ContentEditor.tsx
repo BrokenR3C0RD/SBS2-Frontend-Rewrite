@@ -407,7 +407,7 @@ export default (({
             When you're sure that you meet all of the requirements, click Submit below!
         </p>
         {content && (!user || !content.Permitted(user, CRUD.Update)) && <p className="errors">You do not have permission to edit this submission.</p>}
-        <input type="submit" disabled={!(name.length >= 1 || code.length >= 2 || (type === "@page.program" && (keyInfo === undefined || keyInfo === false)) || (content && (!user || !content.Permitted(user, CRUD.Update)))} value="Submit" />
+        <input type="submit" disabled={!(name.length >= 1 || code.length >= 2 || (type === "@page.program" && (keyInfo === undefined || keyInfo === false)) || (content && (!user || !content.Permitted(user, CRUD.Update))))} value="Submit" />
     </Form>
 }) as React.FunctionComponent<{
     user: FullUser | null,

@@ -8,3 +8,4 @@
 
 export const API_ROOT = "//newdev.smilebasicsource.com";
 export const API_ENTITY = (type: string) => `${API_ROOT}/api/${type}`;
+export const API_CHAIN = `${API_ROOT}/api/read/chain`;
