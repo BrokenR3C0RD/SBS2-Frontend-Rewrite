@@ -15,15 +15,15 @@ export class Category extends NamedEntity implements ICategory {
 
     readonly description: string;
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, name, values, description }: ICategory) {
-        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, name, values });
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values, description }: ICategory) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values });
         this.description = description;
     }
 
-    public static async Tree(rootName: string): Promise<Category | null> {
+    public static async Tree(rootName: string, categories?: Category[]): Promise<Category | null> {
         let res = await Category.Get({ name: rootName });
         if (res[0]) {
-            await res[0].FetchChildren();
+            await res[0].FetchChildren(categories);
             await res[0].FetchPins();
             return res[0];
         } else {
@@ -33,6 +33,13 @@ export class Category extends NamedEntity implements ICategory {
 
     public static async Get(query: Partial<ISearchQuery>): Promise<Category[]> {
         return await Intercept.Read(EntityType.Category, query, Category);
+    }
+    public static async GlobalTree(): Promise<Category[]> {
+        let res = await Category.Get({});
+        for (let i = 0; i < res.length; i++) {
+            await res[i].FetchChildren(res);
+        }
+        return res;
     }
 
     public static async Update(data: Partial<ICategory>): Promise<Category | null> {
@@ -64,10 +71,10 @@ export class Category extends NamedEntity implements ICategory {
     private children: Category[] = [];
     private pins: Content[] = [];
 
-    public async FetchChildren(): Promise<Category[]> {
-        let children = await Category.Get({ parentids: [this.id] });
+    public async FetchChildren(categories?: Category[]): Promise<Category[]> {
+        let children = categories ? categories.filter(cat => cat.parentId == this.id) : await Category.Get({ parentids: [this.id] });
         for (let i = 0; i < children.length; i++) {
-            await children[i].FetchChildren();
+            await children[i].FetchChildren(categories);
         }
         this.children = children;
         return children;

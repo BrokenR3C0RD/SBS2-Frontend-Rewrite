@@ -20,8 +20,8 @@ export default (({ dispatch }) => {
         <Grid
             rows={["min-content", "1fr", "min-content", "min-content"]}
             cols={["1fr", "max-content", "1fr"]}
-            gapX="1em"
-            gapY="1em"
+            // gapX="1em"
+            // gapY="1em"
             style={{
                 width: "100%",
                 right: 0

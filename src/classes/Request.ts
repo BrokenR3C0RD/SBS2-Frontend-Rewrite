@@ -92,9 +92,9 @@ export default class APIRequest<T> {
                 signal,
                 method: this.method || "GET",
                 headers: {
-                    "Content-Type": this.formData ? "multipart/form-data" : "application/json",
                     "Accept": "application/json",
-                    ...this.headers
+                    ...this.headers,
+                    ...(hasBody && !this.formData ? {"Content-Type": "application/json"} : {})
                 },
                 body: hasBody ? this.rawBody || this.formData || JSON.stringify(this.data) : undefined
             });

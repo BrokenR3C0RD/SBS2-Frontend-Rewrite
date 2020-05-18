@@ -61,6 +61,11 @@ export interface IControlledEntity extends IEntity {
      * C (create), R (read), U (update), and D (delete) which describes which actions the user may perform on this Entity. 
      */
     permissions: Dictionary<string>;
+
+    /**
+     * A list of actions that the currently logged in user is permitted to take.
+     */
+    myperms: string;
 }
 
 /**

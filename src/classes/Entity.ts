@@ -27,26 +27,28 @@ export abstract class Entity implements IEntity {
         this.editUserId = editUserId;
 
         Intercept.Preload([
-            [ EntityType.User, [createUserId, editUserId]]
+            [EntityType.User, [createUserId, editUserId]]
         ]);
     }
 
     public async GetCreateUser(): Promise<User | undefined> {
-        return (await Intercept.Read(EntityType.User, { ids: [this.createUserId]}, User))[0];
+        return (await Intercept.Read(EntityType.User, { ids: [this.createUserId] }, User))[0];
     }
 
     public async GetEditUser(): Promise<User | undefined> {
-        return (await Intercept.Read(EntityType.User, { ids: [this.editUserId]}, User))[0];
+        return (await Intercept.Read(EntityType.User, { ids: [this.editUserId] }, User))[0];
     }
 }
 
 export abstract class ControlledEntity extends Entity implements IControlledEntity {
     readonly parentId: number;
     readonly permissions: Dictionary<string>;
+    readonly myperms: string;
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions }: IControlledEntity) {
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms }: IControlledEntity) {
         super({ id, createDate, editDate, createUserId, editUserId });
         this.parentId = parentId;
+        this.myperms = myperms;
         this.permissions = {};
         for (let key in permissions) {
             this.permissions[key] = permissions[key].toString();
@@ -55,12 +57,15 @@ export abstract class ControlledEntity extends Entity implements IControlledEnti
 
     public Permitted(self: FullUser, action: CRUD) {
         /* Users are permitted to do an action if:
+            - The user is provided the permission in `myperms`
             - The user has superuser privileges and the action is not Read, or
             - The user is the creator of the Entity, or
             - The user is provided the permission in the permissions object, or
             - Everyone (UID #0) is provided the permission in the permissions object
         */
         return (
+            this.myperms.includes(action)
+            ||
             action !== CRUD.Read && self.super
             ||
             this.createUserId == self.id
@@ -75,7 +80,7 @@ export abstract class ControlledEntity extends Entity implements IControlledEnti
         this.permissions[user.id] = actions
             .reduce((acc, action) => acc.includes(action) ? acc : acc.concat([action]), [] as CRUD[])
             .join("");
-        
+
         return this;
     }
 
@@ -98,12 +103,12 @@ export abstract class NamedEntity extends ControlledEntity implements INamedEnti
     readonly name: string;
     readonly values: Dictionary<string>;
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, name, values }: INamedEntity){
-        super({id, createDate, editDate, createUserId, editUserId, parentId, permissions});
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values }: INamedEntity) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms });
 
         this.name = name;
         this.values = {};
-        for(let key in values){
+        for (let key in values) {
             this.values[key] = values[key];
         }
     }

@@ -19,13 +19,15 @@ export const getServerSideProps: GetServerSideProps<{
 }> = async context => {
     const { pid } = context.query;
     try {
-        const page = await Intercept.Read(EntityType.Content, { ids: [+pid!] });
-        console.log(pid, page);
-
-        return { props: { preloadPage: page?.[0] as Content } };
+        if (typeof pid === "string" && !isNaN(+pid)) {
+            const page = await Intercept.Read(EntityType.Content, { ids: [+pid!] });
+            if (page?.[0])
+                return { props: { preloadPage: page![0] as Content } };
+        }
     } catch (e) {
-        console.log(e.stack);
-        return { props: { preloadPage: undefined } };
+        console.error("Failure loading page ID " + pid + ": " + e.stack);
+    } finally {
+        return { props: {} };
     }
 }
 
@@ -35,24 +37,23 @@ const Page = (function ({
 }) {
     // @ts-ignore
     const Router = useRouter();
-    const { pid } = Router.query;
+    const { id } = Router.query;
 
     const [, page] = useAsync(
         useCallback(() => {
-            if (pid == null) {
+            if (id == null) {
                 throw null;
             }
-            if (isNaN(+pid)) {
+            if (isNaN(+id)) {
                 return Promise.resolve(null)
             }
-            console.log(preloadPage);
             if (preloadPage)
                 return Promise.resolve([new Content(preloadPage)]);
 
             else {
-                return Content.Get({ ids: [+pid] });
+                return Content.Get({ ids: [+id] });
             }
-        }, [pid])
+        }, [id])
     );
 
     const [, createUser] = useAsync(
@@ -77,8 +78,7 @@ const Page = (function ({
         if (page !== undefined && (page === null || page.length === 0 || (createUser !== undefined && editUser !== undefined))) {
             dispatch({ type: "PAGE_LOADED" });
             dispatch({ type: "CHANGE_TITLE", title: page?.[0]?.name || "" });
-        } else {
-            dispatch({ type: "CHANGE_TITLE", title: "Page" });
+            dispatch({ type: "DISABLE_FOOTER" })
         }
     }, [page, createUser, editUser]);
 

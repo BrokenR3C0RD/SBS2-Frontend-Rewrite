@@ -18,8 +18,8 @@ export class Content extends NamedEntity implements IContent {
     readonly content: string;
     readonly keywords: string[];
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, name, values, type, content, keywords }: IContent) {
-        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, name, values });
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values, type, content, keywords }: IContent) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values });
         this.type = type;
         this.content = content;
         this.keywords = keywords;
@@ -46,7 +46,7 @@ export class Content extends NamedEntity implements IContent {
     }
 
     public get Markup(): string {
-        return this.GetValue("markup") || "12y";
+        return this.GetValue("markupLang") || "12y";
     }
 
     public async ChangeParent(parent: Category): Promise<Content | null> {

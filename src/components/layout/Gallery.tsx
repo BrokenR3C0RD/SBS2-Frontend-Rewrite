@@ -12,7 +12,7 @@ export default (({
     width,
     height,
     style = {},
-    timer = 5000,
+    timer = 0,
     className = ""
 }) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -52,7 +52,8 @@ export default (({
     return <div className={`gallery ${className}`} style={Object.assign({}, {
         width: width,
         height: height,
-        lineHeight: height
+        lineHeight: height,
+        boxSizing: "content-box"
     }, style)}>
         <div className="gallery-content" ref={ref}>
             {children}
@@ -62,17 +63,13 @@ export default (({
             <div className="gallery-prev" onClick={() => prevImage(true)} />
         </>}
         <style jsx>{`
-            .gallery > .gallery-content > :global(*) {
+            .gallery > .gallery-content > :global(*:nth-child(${selected + 1})){
+                display: block;
+                min-width: 0;
+                min-height: 0;
                 position: relative;
                 max-width: ${width};
                 max-height: ${height};
-            }
-            .gallery > .gallery-content > :global(*:nth-child(${selected + 1})){
-                display: block;
-                text-align: center;
-                box-sizing: border-box;
-                min-width: 0;
-                min-height: 0;
             }
         `}</style>
     </div>

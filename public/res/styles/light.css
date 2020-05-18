@@ -6,14 +6,16 @@
     --primary-accent: #999;
     --secondary-accent: #ddd;
     --input-color: #333;
-    --sidebar-background: rgba(255, 255, 255, 0.98);
+    --sidebar-background: rgba(223, 223, 223, 0.8);
     --sidebar-selected: #777;
     --sidebar-selected-hover: #bbb;
-    --cell-background: rgba(255, 255, 255, 0.8);
+    --cell-background: #fafafa;
     --pubkey-color: crimson;
     --background-tile: url("/res/img/tiles_light.png");
     --link-color: #66c;
-    --shadow: rgba(0, 0, 0, 0.5);
+    --shadow: rgba(0, 0, 0, 0.3);
+    --bg-overlay: rgba(255, 255, 255, .5);
+
 
     /* THIS IS THE SBHIGHLIGHT SECTION */
     /*
@@ -54,6 +56,6 @@
 
 @media only screen and (max-width: 800px) {
     :root {
-        --sidebar-background: rgb(255, 255, 255);
+        --sidebar-background: rgb(223, 223, 223);
     }
 }

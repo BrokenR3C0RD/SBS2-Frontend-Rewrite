@@ -17,9 +17,11 @@ import { useRouter } from "next/router";
 import { NextPage } from "next";
 import Head from "next/head";
 import { AppProps } from "next/app";
+import Boundary from "../components/functional/ErrorBoundary";
 import "isomorphic-fetch";
 
 import { CacheDriver } from "../classes/CacheDriver";
+import { EntityType } from "../interfaces/API";
 
 if (typeof window === "object") {
     window.Intercept = new CacheDriver();
@@ -30,6 +32,7 @@ if (typeof window === "object") {
             localStorage.setItem("sbs-auth", token as string);
     });
     window.Intercept.Authenticate((sessionStorage.getItem("sbs-auth") || localStorage.getItem("sbs-auth") || undefined));
+    window.Intercept.Read(EntityType.Category, {}); // Preloading categories = good idea
 } else {
     global.Intercept = new CacheDriver();
 }
@@ -40,7 +43,9 @@ const InitialState = {
     user: null as FullUser | null,
     theme: "light",
     loaded: false,
-    title: ""
+    title: "",
+    footer: true,
+    SiteJS: ""
 };
 
 export default (({
@@ -63,9 +68,9 @@ export default (({
                 }
             case "RESET_MENUS":
                 return {
-                    ...state,
-                    sideOpen: false,
-                    userOpen: false
+                    ...InitialState,
+                    theme: state.theme,
+                    user: state.user
                 };
             case "USER_CHANGE":
                 return {
@@ -86,6 +91,21 @@ export default (({
                 return {
                     ...state,
                     title: action.title || ""
+                }
+            case "DISABLE_FOOTER":
+                return {
+                    ...state,
+                    footer: false
+                }
+            case "SET_THEME":
+                return {
+                    ...state,
+                    theme: action.theme ? action.theme : state.theme == "light" ? "dark" : "light"
+                }
+            case "SET_SITEJS":
+                return {
+                    ...state,
+                    SiteJS: action.SiteJS!
                 }
         }
     }, InitialState);
@@ -110,6 +130,36 @@ export default (({
             dispatch({ type: "PAGE_LOADING" });
         })
     }, []);
+
+    useEffect(() => {
+        if (localStorage.getItem("sbs-theme")) {
+            dispatch({ type: "SET_THEME", theme: localStorage.getItem("sbs-theme")! });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (Intercept.token !== "")
+            Intercept
+                .GetVariable("user_settings")
+                .then(settings => {
+                    const set = JSON.parse(settings || "{}");
+                    dispatch({ type: "SET_THEME", theme: set?.theme || state.theme });
+                    dispatch({ type: "SET_SITEJS", SiteJS: set?.SiteJS || "" });
+                })
+                .catch(() => { });
+    }, [Intercept.token])
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = state.theme;
+        localStorage.setItem("sbs-theme", state.theme);
+        if (Intercept.token !== "") {
+            Intercept
+                .SetVariable("user_settings", JSON.stringify({
+                    theme: state.theme,
+                    SiteJS: state.SiteJS
+                }));
+        }
+    }, [state.theme]);
 
     return <>
         <Head>
@@ -138,10 +188,14 @@ export default (({
         </Head>
         <Navbar dispatch={dispatch} user={state.user} userOpen={state.userOpen} />
         <Sidebar open={state.sideOpen} />
-        <div id="content">
-            <Component dispatch={dispatch} {...pageProps} />
+        <div id="container">
+            <div id="content">
+                <Boundary>
+                    <Component dispatch={dispatch} state={state} {...pageProps} />
+                </Boundary>
+            </div>
+            {!state.loaded && <div id="loading"><Spinner /></div>}
+            {state.footer && <Footer dispatch={dispatch} theme={state.theme} />}
         </div>
-        {!state.loaded && <div id="loading"><Spinner /></div>}
-        <Footer />
     </>
 }) as NextPage<AppProps<{ dispatch: React.Dispatch<Action> }>>;

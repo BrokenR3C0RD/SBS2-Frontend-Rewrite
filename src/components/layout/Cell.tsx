@@ -9,8 +9,8 @@ import React from "react";
 
 export default (({
     children,
-    x,
-    y,
+    x = 1,
+    y = 1,
     width = 1,
     height = 1,
     style = {},
@@ -26,8 +26,8 @@ export default (({
         {children}
     </div>
 }) as React.FunctionComponent<{
-    x: number,
-    y: number,
+    x?: number,
+    y?: number,
     width?: number,
     height?: number,
     style?: React.CSSProperties,

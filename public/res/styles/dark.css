@@ -9,11 +9,13 @@
     --sidebar-background: rgba(16, 16, 16, 0.8);
     --sidebar-selected: #999;
     --sidebar-hover: #555;
-    --cell-background: rgba(27, 27, 27, 0.7);
+    --cell-background: rgba(7, 7, 7, 1);
     --pubkey-color: #ccc;
     --background-tile: url("/res/img/tiles_dark.png");
     --link-color: #99b;
     --shadow: rgba(0, 0, 0, 0.5);
+    --bg-overlay: rgba(0, 0, 0, 0.5);
+
 
     /* THIS IS THE SBHIGHLIGHT SECTION */
     /*
@@ -56,8 +58,8 @@
     }
 } */
 
-@media only screen and (max-width: 800px) {
+/* @media only screen and (max-width: 800px) {
     :root[data-theme="dark"] {
         --sidebar-background: rgb(16, 16, 16);
     }
-}
+} */
