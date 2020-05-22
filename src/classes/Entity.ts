@@ -43,12 +43,12 @@ export abstract class Entity implements IEntity {
 export abstract class ControlledEntity extends Entity implements IControlledEntity {
     readonly parentId: number;
     readonly permissions: Dictionary<string>;
-    readonly myperms: string;
+    readonly myPerms: string;
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms }: IControlledEntity) {
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms }: IControlledEntity) {
         super({ id, createDate, editDate, createUserId, editUserId });
         this.parentId = parentId;
-        this.myperms = myperms;
+        this.myPerms = myPerms;
         this.permissions = {};
         for (let key in permissions) {
             this.permissions[key] = permissions[key].toString();
@@ -64,7 +64,7 @@ export abstract class ControlledEntity extends Entity implements IControlledEnti
             - Everyone (UID #0) is provided the permission in the permissions object
         */
         return (
-            this.myperms.includes(action)
+            this.myPerms.includes(action)
             ||
             action !== CRUD.Read && self.super
             ||
@@ -103,8 +103,8 @@ export abstract class NamedEntity extends ControlledEntity implements INamedEnti
     readonly name: string;
     readonly values: Dictionary<string>;
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values }: INamedEntity) {
-        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms });
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms: myperms, name, values }: INamedEntity) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms: myperms });
 
         this.name = name;
         this.values = {};

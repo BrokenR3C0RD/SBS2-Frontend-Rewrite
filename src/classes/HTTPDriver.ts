@@ -293,7 +293,7 @@ export class HTTPDriver implements IDriver {
         /* NoOp */
     }
 
-    public async Chain(request: IChainedRequest<IView>[]): Promise<IChainedResponse> {
+    public async Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse> {
         let requests: string[] = [];
         let constructors: { [i in EntityType]?: (new (i: IView) => IView) } = {};
         let fields: { [i in EntityType]?: string[] } = {};
@@ -311,11 +311,11 @@ export class HTTPDriver implements IDriver {
 
             requests.push(str);
 
-            if (req.constructor)
-                constructors[req.entity] = req.constructor;
+            if (req.cons)
+                constructors[req.entity] = req.cons;
 
             if (req.fields)
-                fields[req.entity] = (fields[req.entity] || []).concat(req.fields).reduce((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, [] as string[]);
+                fields[req.entity] = (fields[req.entity] || []).concat(req.fields as string[]).reduce((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, [] as string[]);
         }
 
         let response = await (
@@ -323,7 +323,7 @@ export class HTTPDriver implements IDriver {
                 .Method("GET")
                 .AddField("requests", requests)
                 .AddFields(fields)
-                .Execute()
+                .Execute(abort)
         ) || {};
 
         for (let key in response) {

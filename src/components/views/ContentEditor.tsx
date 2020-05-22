@@ -236,46 +236,48 @@ export default (({
                     <span className="key-console"><b> SmileBASIC for {keyInfo.extInfo.console === "3DS" ? "3DS/WiiU" : "Switch"}</b></span>
                     <br />
                     <table className="key-data">
-                        <tr>
-                            <td>
-                                Uploaded
+                        <tbody>
+                            <tr>
+                                <td>
+                                    Uploaded
                             </td>
-                            <td>
-                                {moment(keyInfo.uploaded).calendar()}
+                                <td>
+                                    {moment(keyInfo.uploaded).calendar()}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Last updated
                             </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                Last updated
+                                <td>
+                                    {moment(keyInfo.extInfo.version * 1000).subtract("9", "hours").calendar()}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Author
                             </td>
-                            <td>
-                                {moment(keyInfo.extInfo.version * 1000).subtract("9", "hours").calendar()}
+                                <td>
+                                    {keyInfo.author.name}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Size
                             </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                Author
+                                <td>
+                                    {byteSize(keyInfo.size)}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Downloads
                             </td>
-                            <td>
-                                {keyInfo.author.name}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                Size
-                            </td>
-                            <td>
-                                {byteSize(keyInfo.size)}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                Downloads
-                            </td>
-                            <td>
-                                {keyInfo.downloads}
-                            </td>
-                        </tr>
+                                <td>
+                                    {keyInfo.downloads}
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </>
@@ -386,10 +388,10 @@ export default (({
                     {` Added a name (min. 1 character)`}
                 </label>
             </li>
-            {type === "@page.program" && <label>
+            {type === "@page.program" && <li><label>
                 <input disabled type="checkbox" checked={keyInfo !== undefined && keyInfo !== false} />
                 {` Set a key`}
-            </label>}
+            </label></li>}
             <li>
                 <label>
                     <input disabled type="checkbox" checked={code.length >= 2} />

@@ -378,7 +378,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         return await this.currentDriver.DeleteVariable(name);
     }
 
-    public async Chain(request: IChainedRequest<IView>[]): Promise<IChainedResponse> {
+    public async Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse> {
         // Alright, we have to be super fancy with this to make it work right with caching.
         // We basically have to attempt to create our own chain, but if any of the data is expired, we return null.
         try {
@@ -404,7 +404,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
                 let res = await this.Read(req.entity, {
                     ...req.query || {},
                     ids
-                }, req.constructor, true);
+                }, req.cons as new (data: IView) => IView, true);
 
                 output[req.entity] = (output[req.entity] || []).concat(res.map(r => {
                     if (req.fields == null)
@@ -412,22 +412,22 @@ export class CacheDriver extends EventEmitter implements IDriver {
 
                     let out: Partial<IView> = {};
                     for (let i = 0; i < req.fields.length; i++) {
-                        out[req.fields[i]] = r[req.fields[i]] as any;
+                        (out as any)[req.fields[i]] = (r as any)[req.fields[i]];
                     }
                     return out;
                 }));
                 responses.push(res);
             }
             return output;
-        } catch(e) {
-            let r = await this.currentDriver.Chain(request);
+        } catch (e) {
+            let r = await this.currentDriver.Chain(request, abort);
             for (let k in r) {
                 let type = k as EntityType;
 
                 // We'll cache the entity we receive, but we need to make sure we're getting full objects here and not some trash we don't want.
                 this.cache[type] = this.cache[type] || {};
 
-                if (request.filter(req => req.entity == type).reduce((acc, r) => acc.concat(r.fields || []), [] as string[]).length > 0)
+                if (request.filter(req => req.entity == type && req.fields?.length != 0).reduce((acc, r) => acc.concat(r.fields as string[] || []), [] as string[]).length > 0)
                     continue;
 
                 for (let j = 0; j < r[type]!.length; j++) {

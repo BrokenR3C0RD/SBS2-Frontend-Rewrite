@@ -639,6 +639,10 @@ select {
     cursor: pointer;
 }
 
+:root *:disabled {
+    cursor: not-allowed;
+}
+
 :root button,
 :root input[type="submit"],
 :root select {
@@ -662,14 +666,14 @@ button {
     transition: filter .1s;
 }
 
-input[type="submit"]:hover,
-button:hover {
+input[type="submit"]:not(:disabled):hover,
+button:not(:disabled):hover {
     color: var(--primary-text);
     filter: invert(75%);
 }
 
-input[type="submit"]:active,
-button:active {
+input[type="submit"]:not(:disabled):active,
+button:not(:disabled):active {
     filter: invert(25%);
 }
 

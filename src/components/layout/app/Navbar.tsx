@@ -5,16 +5,123 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { FullUser } from "../../../classes/User";
+import { FullUser, User } from "../../../classes/User";
 import { Icon } from "@iconify/react";
 import LoginIcon from "@iconify/icons-mdi/login";
 import Form from "../../functional/Form";
 import { Dictionary } from "../../../interfaces/Generic";
+import dl from "damerau-levenshtein";
+import { EntityType } from "../../../interfaces/API";
+import { Content } from "../../../classes/Content";
+
+const URL_MAP = {
+    "user": "/user/[id]",
+    "discussion": "/discussions/[id]",
+    "page": "/pages/[id]"
+}
 
 export default (({ dispatch, user, userOpen }) => {
     const [query, setQuery] = useState<string>("");
+    const [results, setResults] = useState<{
+        type: string,
+        name: string,
+        id: number,
+        keywords: string[]
+    }[]>([]);
+
+    useEffect(() => {
+        let abort = new AbortController();
+        setTimeout(
+            (async () => {
+                if (abort.signal.aborted)
+                    return;
+
+                if (query.length == 0)
+                    return setResults([]);;
+
+                try {
+                    let response = await Intercept.Chain(
+                        [
+                            {
+                                entity: EntityType.User,
+                                query: {
+                                    username: `%${query}%`,
+                                    limit: 10
+                                }
+                            },
+                            {
+                                entity: EntityType.Content,
+                                query: {
+                                    name: `%${query}%`,
+                                    type: "@page%",
+                                    limit: 10
+                                }
+                            },
+                            {
+                                entity: EntityType.Content,
+                                query: {
+                                    keyword: `%${query}%`,
+                                    type: "@page%",
+                                    limit: 10
+                                }
+                            },
+                            {
+                                entity: EntityType.Content,
+                                query: {
+                                    name: `%${query}%`,
+                                    type: "@discussion%",
+                                    limit: 10
+                                }
+                            },
+                            {
+                                entity: EntityType.Content,
+                                query: {
+                                    keyword: `%${query}%`,
+                                    type: "@discussion%",
+                                    limit: 10
+                                }
+                            }
+                        ],
+                        abort.signal
+                    );
+
+                    let aggregate = ((response.user as User[] || []).map<any>(user => ({
+                        type: "user",
+                        name: user.username,
+                        keywords: [],
+                        id: user.id
+                    })))
+                        .concat(
+                            ((response.content as Content[] || []).map<any>(page => ({
+                                type: page.type,
+                                name: page.name,
+                                id: page.id,
+                                keywords: page.keywords
+                            }))
+                            )
+                        )
+                        .sort((a: any, b: any) => {
+                            return (
+                                dl(b.keywords.join(" "), query).similarity
+                                - dl(a.keywords.join(" "), query).similarity
+                            ) * 10
+                                + (
+                                    dl(b.name, query).similarity
+                                    - dl(a.name, query).similarity
+                                ) * 5
+                        })
+                        .slice(0, 10);
+
+                    if (!abort.signal.aborted)
+                        setResults(aggregate);
+                } catch (e) {
+
+                }
+            }), 250);
+        return () => abort.abort();
+    }, [query]);
 
     function DoLogOut() {
         Intercept.Authenticate();
@@ -35,7 +142,15 @@ export default (({ dispatch, user, userOpen }) => {
             <input type="text" placeholder="Search..." value={query} onChange={(evt) => setQuery(evt.currentTarget.value)} />
             <div id="hideout" />
             <div id="results">
-
+                <ul>
+                    {results.map((result, i) => {
+                        let href = result.type == "user" ? "/user/[id]" : (URL_MAP as any)[result.type.substr(1).split(".")[0]] || URL_MAP["page"];
+                        let as = href.replace("[id]", result.id.toString());
+                        return <li key={i}>
+                            <Link href={href} as={as}><a>{result.name}</a></Link>
+                        </li>
+                    })}
+                </ul>
             </div>
         </span>
 

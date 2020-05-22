@@ -18,8 +18,8 @@ export class Content extends NamedEntity implements IContent {
     readonly content: string;
     readonly keywords: string[];
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values, type, content, keywords }: IContent) {
-        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values });
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values, type, content, keywords }: IContent) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values });
         this.type = type;
         this.content = content;
         this.keywords = keywords;

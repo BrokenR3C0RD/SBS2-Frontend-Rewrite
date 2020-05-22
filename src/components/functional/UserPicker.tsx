@@ -47,7 +47,7 @@ export default (({
                 }))
                 .sort((user1, user2) => dl(user1.username, filledIn).similarity - dl(user2.username, filledIn).similarity)
                 .filter(user => users.find(nuser => user.id == nuser.id) == null);
-
+            
             setPossibilities(nusers);
         } else {
             setPossibilities([]);

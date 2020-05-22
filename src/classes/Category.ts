@@ -14,10 +14,12 @@ export class Category extends NamedEntity implements ICategory {
     EntityType = EntityType.Category;
 
     readonly description: string;
+    readonly localSupers: number[];
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values, description }: ICategory) {
-        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myperms, name, values });
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms: myperms, name, values, description, localSupers }: ICategory) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms: myperms, name, values });
         this.description = description;
+        this.localSupers = localSupers;
     }
 
     public static async Tree(rootName: string, categories?: Category[]): Promise<Category | null> {

@@ -26,6 +26,47 @@ export interface IView {
     createDate: Date;
 }
 
+
+/**
+ * Contains information about aggregated data.
+ */
+export interface IAggregate {
+    /**
+     * The date of the first post made.
+    */
+    firstPost: Date | null;
+
+    /**
+     * The date of the last post made. 
+    */
+    lastPost: Date | null;
+
+    /**
+     * The number of posts made.
+    */
+    count: number;
+}
+
+/** Aggregated data for comments on a specified parent along with a list of users involved. */
+export interface ICommentAggregate extends IAggregate {
+    /**
+     * The parent ID of the comment aggregate.
+    */
+    id: number;
+
+    /**
+     * The users who made comments included in the aggregated dataset.
+     */
+    userIds: number[];
+}
+
+/**
+ * Stores information about watched content.
+ */
+export interface IWatchInformation extends IView {
+    //userId:
+}
+
 /**
  * An entity is a piece of information stored by the API.
  */
@@ -65,7 +106,7 @@ export interface IControlledEntity extends IEntity {
     /**
      * A list of actions that the currently logged in user is permitted to take.
      */
-    myperms: string;
+    myPerms: string;
 }
 
 /**
@@ -127,6 +168,12 @@ export interface ICategory extends INamedEntity {
      * Must be between 0 and 2048 characters in length.
      */
     description: string;
+
+    /**
+     * A list of users who have super privileges over this specific category.
+     * They have complete control over every piece of subcontent (unless they don't have read access)
+     */
+    localSupers: number[];
 }
 
 /**
@@ -147,6 +194,15 @@ export interface IContent extends INamedEntity {
      * The keywords that can be used to search for this Content.
      */
     keywords: string[];
+
+    // /**
+    //  * Aggregate data about comments on this Content.
+    //  */
+    // comments: IAggregate;
+    // /**
+    //  * Aggregate data about watches on this Content.
+    //  */
+    // watches: IAggregate;
 }
 
 /**
