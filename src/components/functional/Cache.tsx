@@ -7,7 +7,7 @@
 
 import { GetServerSideProps } from "next";
 import { useEffect, useState } from "react";
-import { TransmittedCache } from "../../classes/CacheDriver";
+import { TransmittedCache, CacheDriver } from "../../classes/CacheDriver";
 import { IChainedRequest } from "../../interfaces/Driver";
 import { Dictionary } from "../../interfaces/Generic";
 
@@ -33,6 +33,8 @@ export default function withCache<T extends { cache: TransmittedCache }>(Compone
     };
 
     let getServerSideProp = (async context => {
+        global.Intercept = new CacheDriver();
+
         if (context.req.url!.substr(-5) === ".json"){
             console.log("Not sending cached data.");
             return { props: { cache: {} } };
