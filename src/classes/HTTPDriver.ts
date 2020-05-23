@@ -9,9 +9,9 @@
 import Validate from "validator";
 import { API_ENTITY, API_CHAIN } from "../constants/ApiRoutes";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
-import { IDriver, IChainedRequest, IChainedResponse } from "../interfaces/Driver";
+import { IDriver, IChainedRequest } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { IFile, IUserSelf, IView } from "../interfaces/Views";
+import { IFile, IUserSelf, IView, IChainedResponse } from "../interfaces/Views";
 import APIRequest from "./Request";
 
 export class HTTPDriver implements IDriver {
@@ -301,14 +301,15 @@ export class HTTPDriver implements IDriver {
             let req = request[i];
             let str = req.entity as string;
 
-            if (req.query)
-                str += "-" + JSON.stringify(req.query);
 
             if (req.constraint)
                 for (let j = 0; j < req.constraint.length; j++)
                     if (req.constraint[j].length > 0)
                         str += req.constraint[j].map(constr => `.${j}${constr}`).join("");
 
+            if (req.query)
+                str += "-" + JSON.stringify(req.query);
+                
             requests.push(str);
 
             if (req.cons)
@@ -318,17 +319,17 @@ export class HTTPDriver implements IDriver {
                 fields[req.entity] = (fields[req.entity] || []).concat(req.fields as string[]).reduce((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, [] as string[]);
         }
 
-        let response = await (
+        let response = (await (
             new APIRequest<IChainedResponse>(API_CHAIN)
                 .Method("GET")
                 .AddField("requests", requests)
                 .AddFields(fields)
                 .Execute(abort)
-        ) || {};
+        ))!;
 
         for (let key in response) {
             if (key in constructors) {
-                response[key as EntityType] = response[key as EntityType]!.map(res => new constructors[key as EntityType]!(res as IView));
+                response[key as EntityType] = (response[key as EntityType]! as IView[]).map(res => new constructors[key as EntityType]!(res as IView)) as any;
             }
         }
 

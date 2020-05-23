@@ -6,7 +6,7 @@
  */
 
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "./API";
-import { IView, IUserSelf, IFile } from "./Views";
+import { IView, IUserSelf, IFile, IChainedResponse } from "./Views";
 
 export interface IChainedRequest<T = unknown> {
     entity: EntityType;
@@ -14,10 +14,6 @@ export interface IChainedRequest<T = unknown> {
     constraint?: string[][];
     cons?: new (v: T) => T;
     fields?: (keyof T)[];
-}
-
-export type IChainedResponse = {
-    [i in EntityType]?: Partial<IView>[]
 }
 
 export interface IDriver {

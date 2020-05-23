@@ -161,7 +161,7 @@ export default (({ dispatch, user, userOpen }) => {
                     <img src={user?.Avatar(64)} className="user-avatar" onClick={() => dispatch({ type: "TOGGLE_USER" })} />
                     <ul>
                         <b>{user.username}</b>
-                        <li><Link href="/user/[uid]" as={`/user/${user.id}`}><a>Profile</a></Link></li>
+                        <li><Link href="/user/[id]" as={`/user/${user.id}`}><a>Profile</a></Link></li>
                         <li><Link href="/usersettings"><a>Settings</a></Link></li>
                         <li><a onClick={DoLogOut}>Logout</a></li>
                     </ul>

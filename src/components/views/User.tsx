@@ -5,13 +5,15 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
+import Moment from "moment";
 import React from "react";
-import Grid from "../layout/Grid";
+import { Content } from "../../classes/Content";
 import { User } from "../../classes/User";
 import Cell from "../layout/Cell";
-import Moment from "moment";
+import Grid from "../layout/Grid";
+import MarkupView from "../functional/MarkupView";
 
-export default (({ user }) => {
+export default (({ user, page }) => {
     return <Grid
         className="user-view"
         cols={["min-content", "1fr"]}
@@ -28,7 +30,13 @@ export default (({ user }) => {
         <Cell x={1} y={2}>
             <img className="profile-avatar" src={user.Avatar(256)} />
         </Cell>
+        <Cell x={2} y={2}>
+            <h2>About me:</h2>
+            {page == null && <b>This user hasn't created their page yet!</b>}
+            {page != null && <MarkupView code={page.content} markupLang={page.Markup} />}
+        </Cell>
     </Grid>
 }) as React.FunctionComponent<{
-    user: User
+    user: User,
+    page?: Content
 }>;

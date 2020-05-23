@@ -6,7 +6,7 @@
  */
 
 import { EntityType, ISearchQuery } from "../interfaces/API";
-import { IContent } from "../interfaces/Views";
+import { IContent, ICommentAggregate, IAggregate } from "../interfaces/Views";
 import { Category } from "./Category";
 import { NamedEntity } from "./Entity";
 import { User } from "./User";
@@ -17,12 +17,16 @@ export class Content extends NamedEntity implements IContent {
     readonly type: string;
     readonly content: string;
     readonly keywords: string[];
+    readonly comments: IAggregate;
+    readonly watches: IAggregate;
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values, type, content, keywords }: IContent) {
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values, type, content, keywords, comments, watches }: IContent) {
         super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values });
         this.type = type;
         this.content = content;
         this.keywords = keywords;
+        this.comments = comments;
+        this.watches = watches;
     }
 
     public static async Get(query: Partial<ISearchQuery>): Promise<Content[]> {

@@ -6,7 +6,7 @@
  */
 
 import { Dictionary } from "./Generic";
-import { CRUD } from "./API";
+import { CRUD, EntityType } from "./API";
 
 //#region Generic Entity types.
 
@@ -125,6 +125,14 @@ export interface INamedEntity extends IControlledEntity {
     values: Dictionary<string>;
 }
 
+export type IChainedResponse = {
+    [EntityType.User]: IUser[],
+    [EntityType.Content]: IContent[],
+    [EntityType.Category]: ICategory[],
+    [EntityType.Comment]: IComment[],
+    [EntityType.File]: IFile[]
+}
+
 //#endregion
 
 //#region Specific Entity types
@@ -195,14 +203,14 @@ export interface IContent extends INamedEntity {
      */
     keywords: string[];
 
-    // /**
-    //  * Aggregate data about comments on this Content.
-    //  */
-    // comments: IAggregate;
-    // /**
-    //  * Aggregate data about watches on this Content.
-    //  */
-    // watches: IAggregate;
+    /**
+     * Aggregate data about comments on this Content.
+     */
+    comments: IAggregate;
+    /**
+     * Aggregate data about watches on this Content.
+     */
+    watches: IAggregate;
 }
 
 /**
@@ -282,46 +290,6 @@ export interface IEvent {
      * Extra information pertaining to the Event.
      */
     extra: string;
-}
-
-/** 
- * Describes comment activity for a specific piece of content.
- */
-export interface ICommentActivity {
-    /**
-     * The ID of the content this comment activity refers to.
-     */
-    parentId: number;
-
-    /**
-     * The number of comments made in this window of activity.
-     */
-    count: number;
-
-    /**
-     * The Date that the last comment was made.
-    */
-    lastDate: Date;
-
-    /**
-     * IDs of the users who posted comments included in the comment activity.
-     */
-    userIds: number[]
-}
-
-/**
- * Contains both Events and CommentActivity for a given range of time.
- */
-export interface IActivityResult {
-    /**
-     * All events returned in this request.
-     */
-    activity: IEvent[],
-
-    /**
-     * All comment activity returned in this request.
-     */
-    comments: ICommentActivity[]
 }
 
 //#endregion

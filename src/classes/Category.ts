@@ -16,8 +16,8 @@ export class Category extends NamedEntity implements ICategory {
     readonly description: string;
     readonly localSupers: number[];
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms: myperms, name, values, description, localSupers }: ICategory) {
-        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms: myperms, name, values });
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values, description, localSupers }: ICategory) {
+        super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values });
         this.description = description;
         this.localSupers = localSupers;
     }
@@ -83,6 +83,10 @@ export class Category extends NamedEntity implements ICategory {
     }
 
     public async FetchPins(): Promise<Content[]> {
+        let ids = (this.GetValue("pinned") || "").split(",").map(v => +v);
+        if (ids.length == 0)
+            return [];
+
         let pins = await Content.Get({ ids: (this.GetValue("pinned") || "").split(",").map(v => +v) });
         this.pins = pins;
         return pins;

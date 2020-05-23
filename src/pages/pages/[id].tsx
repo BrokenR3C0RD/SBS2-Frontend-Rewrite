@@ -5,67 +5,27 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import { GetServerSideProps } from 'next';
 import Head from "next/head";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useState } from "react";
-import { Content } from "../../classes/Content";
-import DefaultPageView from "../../components/views/DefaultPage";
-import useAsync from "../../hooks/Async";
-import { EntityType } from "../../interfaces/API";
-import { IChainedRequest, IChainedResponse } from '../../interfaces/Driver';
-import { IView } from '../../interfaces/Views';
-import { User } from '../../classes/User';
+import React, { useEffect, useState } from "react";
 import { TransmittedCache } from '../../classes/CacheDriver';
+import { Content } from "../../classes/Content";
+import { User } from '../../classes/User';
+import DefaultPageView from "../../components/views/DefaultPage";
 import useChain from '../../hooks/Chain';
+import { EntityType } from "../../interfaces/API";
+import withCache from "../../components/functional/Cache";
 
-export const getServerSideProps: GetServerSideProps<{
-    preloadPage?: Content,
-    cache?: TransmittedCache | {}
-}> = async context => {
-    const { id } = context.query;
-    try {
-        if (typeof id === "string" && !isNaN(+id)) {
-            const response = await Intercept.Chain([{
-                entity: EntityType.Content,
-                query: {
-                    ids: [+id]
-                }
-            },
-            {
-                entity: EntityType.User,
-                constraint: [["createUserId", "editUserId"]]
-            }]);
-
-            if (response[EntityType.Content]?.[0])
-                return { props: { preloadPage: response[EntityType.Content]?.[0]! as Content, cache: await Intercept.CreateTransmittableCache() } };
-        }
-    } catch (e) {
-        console.error("Failure loading page ID " + id + ": " + e.stack);
-    }
-    return { props: { cache: {} } };
-}
-
-const Page = (function ({
+const [Page, getServerSideProps] = withCache((function ({
     dispatch,
-    preloadPage,
     cache
 }) {
     // @ts-ignore
     const Router = useRouter();
     const { id } = Router.query;
-    const [tCache, setTCache] = useState<TransmittedCache>();
-
-    useEffect(() => {
-        if (JSON.stringify(cache) !== JSON.stringify(tCache)) {
-            setTCache(cache);
-            if (cache != null)
-                Intercept.LoadTransmittedCache(cache!);
-        }
-    });
 
     const [, response] = useChain(() => {
-        if (id == null || tCache == null)
+        if (id == null)
             throw null;
 
         if (isNaN(+id))
@@ -85,8 +45,7 @@ const Page = (function ({
             ],
             cons: User as any
         }];
-
-    }, [id, tCache]);
+    }, [id]);
 
     const contents = response?.[EntityType.Content];
     const users = response?.[EntityType.User];
@@ -110,14 +69,28 @@ const Page = (function ({
         }
     }, [response]);
 
+    const preloadPage = cache?.content?.[0];
 
     return <>
         <Head>
-            {preloadPage && <meta property="og:title" content={preloadPage.name} />}
+            {preloadPage && <>
+                <meta property="og:title" content={preloadPage.name} />
+
+            </>}
         </Head>
         {contents != null && page == null && <h1>Page not found.</h1>}
         {contents && page && createUser && editUser && <DefaultPageView page={page} createUser={createUser} editUser={editUser} />}
     </>;
-}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, preloadPage?: Content, cache?: TransmittedCache }>;
+}) as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, cache: TransmittedCache }>, ({ id }) => !isNaN(+(id || NaN)) ? [{
+    entity: EntityType.Content,
+    query: {
+        ids: [+(id as string)]
+    }
+},
+{
+    entity: EntityType.User,
+    constraint: [["createUserId", "editUserId"]]
+}] : []);
 
 export default Page;
+export { getServerSideProps };

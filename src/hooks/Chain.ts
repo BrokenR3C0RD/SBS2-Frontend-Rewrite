@@ -6,8 +6,9 @@
  */
 
 import useAsync from "./Async";
-import { IChainedRequest, IChainedResponse } from "../interfaces/Driver";
+import { IChainedRequest } from "../interfaces/Driver";
 import { useCallback } from "react";
+import { IChainedResponse } from "../interfaces/Views";
 
 export default function useChain(request: () => (IChainedRequest<any>[] | null), dependencies: any[]) {
     return useAsync<IChainedResponse | null>(

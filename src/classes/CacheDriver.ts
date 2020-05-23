@@ -6,12 +6,44 @@
  */
 
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
-import { IDriver, IChainedRequest, IChainedResponse } from "../interfaces/Driver";
+import { IDriver, IChainedRequest } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { IUserSelf, IView, ICategory, IComment, IContent, IUser, IFile } from "../interfaces/Views";
+import { IUserSelf, IView, ICategory, IComment, IContent, IUser, IFile, IControlledEntity, INamedEntity, IChainedResponse } from "../interfaces/Views";
 import { HTTPDriver } from "./HTTPDriver";
 import { EventEmitter } from "./Event";
-import { Entity } from "./Entity";
+
+function onlyContains(arr1: string[], arr2: string[]): boolean {
+    for (let i = 0; i < arr1.length; i++) {
+        if (arr2.indexOf(arr1[i]) == -1)
+            return false;
+    }
+    return true;
+}
+
+function sqlSimilar(str: string, matches: string): boolean {
+    let regexp = new RegExp(`^${str.replace(/_/g, ".").replace(/%/g, ".*")}$`, "i");
+    return regexp.test(str);
+}
+
+// https://stackoverflow.com/a/2450976
+function shuffle<T>(array: T[]): T[] {
+    var currentIndex = array.length, temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+    }
+
+    return array;
+}
 
 type DriverCache = {
     [i in EntityType]?: Dictionary<CachedItem<IView>>
@@ -83,7 +115,18 @@ class CachedRequest<T extends IView> {
                 return null;
             }
         } else {
+            if (this.data.length == 0)
+                return [];
+
             return await Intercept.Read<T>(this.entityType, { ids: this.data });
+        }
+    }
+
+    public ToTransmit(): TransmittedRequest {
+        return {
+            entityType: this.entityType,
+            request: this.request,
+            data: this.data
         }
     }
 
@@ -96,7 +139,6 @@ class CachedRequest<T extends IView> {
 function hashRequest(type: EntityType, req: Partial<ISearchQuery>): string {
     return `${type}:${JSON.stringify(req)}`;
 }
-
 
 // Cache locking is kinda gross.
 class CacheLock extends EventEmitter {
@@ -119,8 +161,15 @@ export type TransmittedCache = {
     [EntityType.Comment]: IComment[],
     [EntityType.Content]: IContent[],
     [EntityType.User]: IUser[],
-    [EntityType.File]: IFile[]
+    [EntityType.File]: IFile[],
+    requests: TransmittedRequest[]
 }
+
+type TransmittedRequest = {
+    entityType: EntityType,
+    request: Partial<ISearchQuery>,
+    data: number[]
+};
 
 // The Cache driver is basically a middleware driver. It allows switching between drivers seamlessly, caches data in
 // an expiry cache, and allows intercepting/modifying from SiteJS. The Cache is just what I use it for the most internally.
@@ -140,7 +189,8 @@ export class CacheDriver extends EventEmitter implements IDriver {
         [EntityType.Category]: {},
         [EntityType.Comment]: {},
         [EntityType.Content]: {},
-        [EntityType.User]: {}
+        [EntityType.User]: {},
+        [EntityType.File]: {}
     };
 
     public constructor(cacheData?: TransmittedCache) {
@@ -155,8 +205,15 @@ export class CacheDriver extends EventEmitter implements IDriver {
 
     public LoadTransmittedCache(cacheData: TransmittedCache): this {
         for (let key in cacheData) {
-            for (let i = 0; i < cacheData[key as EntityType].length; i++) {
-                this.cache[key as EntityType]![cacheData[key as EntityType][i].id] = new CachedItem(key as EntityType, cacheData[key as EntityType][i]);
+            if (key == "requests") {
+                for (let i = 0; i < cacheData.requests.length; i++) {
+                    let item = cacheData.requests[i];
+                    this.reqcache[hashRequest(item.entityType, item.request)] = new CachedRequest(item.entityType, item.request, item.data);
+                }
+            } else {
+                for (let i = 0; i < cacheData[key as EntityType].length; i++) {
+                    this.cache[key as EntityType]![cacheData[key as EntityType][i].id] = new CachedItem(key as EntityType, cacheData[key as EntityType][i]);
+                }
             }
         }
         return this;
@@ -174,7 +231,9 @@ export class CacheDriver extends EventEmitter implements IDriver {
         if (this.reqcache[hash] && !this.reqcache[hash].Expired) {
             return (await this.reqcache[hash].Get())!;
         } else {
-            if (failOnExpiry) throw null;
+            if (failOnExpiry) {
+                throw null;
+            }
             let resp = await this.currentDriver.Read<IView>(type, req);
             let ids = resp.map(view => view.id);
             resp.forEach(view => {
@@ -197,7 +256,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         this.cache[type] = this.cache[type] || {};
 
         let results: T[] = [];
-        if (Object.keys(query).length == 1 && query["ids"] && query["ids"].length > 0) { // This is only requesting by IDs, so we might have cached this
+        if (query["ids"] && query["ids"].length > 0 && onlyContains(Object.keys(query), ["ids", "parentids", "limit", "skip", "sort", "reverse"])) {
             let ids = query["ids"]!;
             let uncached: number[] = [];
             for (let i = 0; i < ids.length; i++) {
@@ -235,7 +294,19 @@ export class CacheDriver extends EventEmitter implements IDriver {
                     delete this.locked[type][item.id];
                     results.push(item);
                 }
+            }
 
+            switch (query.sort || "ids") {
+                case "ids":
+                    results = results.sort((a, b) => a.id - b.id);
+                    break;
+                case "random":
+                    results = shuffle(results);
+                    break;
+            }
+
+            if (query.reverse) {
+                results = results.reverse();
             }
         } else {
             results = (await this.cacheRequest(type, query, failOnExpiry)) as T[] || [];
@@ -383,27 +454,39 @@ export class CacheDriver extends EventEmitter implements IDriver {
         // We basically have to attempt to create our own chain, but if any of the data is expired, we return null.
         try {
             let responses: IView[][] = [];
-            let output: IChainedResponse = {};
+            let output: any = {};
             for (let i = 0; i < request.length; i++) {
                 let req = request[i];
-                let ids = req.query?.["ids"]?.map(i => +i) || [];
+                let query = {
+                    ...req.query
+                }
+
                 if (req.constraint) {
                     for (let j = 0; j < req.constraint.length; j++) {
                         let constraints = req.constraint[j];
                         let res = responses[j];
-                        if (res.length == 0)
-                            throw null;
                         if (constraints.length == 0)
                             continue;
+                        if (res.length == 0)
+                            throw null;
 
                         for (let k = 0; k < constraints.length; k++) {
-                            ids = ids.concat(res.map(r => (r as any)[constraints[k]]).reduce((acc, r) => r instanceof Array ? acc.concat(r) : acc.concat([r]), [] as number[]));
+                            let constraint = constraints[k].split("$");
+                            let prime = constraint[0];
+                            let target = constraint[1] || "ids";
+
+                            let s = res.map(r => (r as any)[prime]);
+                            if (target[target.length - 1] == "s") {
+                                (query as any)[target] = ((query as any)[target] || []).concat(s).reduce((acc: number[], r: number | number[]) => r instanceof Array ? acc.concat(r) : acc.concat([r]), [] as number[]);
+                            } else {
+                                (query as any)[target] = s[0];
+                            }
                         }
                     }
                 }
+
                 let res = await this.Read(req.entity, {
-                    ...req.query || {},
-                    ids
+                    ...query
                 }, req.cons as new (data: IView) => IView, true);
 
                 output[req.entity] = (output[req.entity] || []).concat(res.map(r => {
@@ -420,6 +503,9 @@ export class CacheDriver extends EventEmitter implements IDriver {
             }
             return output;
         } catch (e) {
+            if (e != null)
+                console.error(e);
+
             let r = await this.currentDriver.Chain(request, abort);
             for (let k in r) {
                 let type = k as EntityType;
@@ -439,7 +525,93 @@ export class CacheDriver extends EventEmitter implements IDriver {
                     }
                 }
             }
-            return r;
+            // This is likely the most complex caching logic I'm going to write.
+            // Caching chain sub-requests is extremely difficult, and requires basically narrowing down the data from each request down to
+            // what we expect it to grab.
+            // This is IMPOSSIBLE if field limiting is used, since we're only supposed to be caching complete data.
+            let res: IView[][] = [];
+            req:
+            for (let i = 0; i < request.length; i++) {
+                let req = request[i];
+                if (req.fields)
+                    continue;
+
+                let query: Partial<ISearchQuery> = {
+                    ...req.query
+                };
+
+                let subres: IView[] = r[req.entity]?.slice() as IView[];
+                if (req.constraint && req.constraint.length > 0) {
+                    for (let j = 0; j < req.constraint.length; j++) {
+                        let constraints = req.constraint[j];
+                        if (constraints.length == 0)
+                            continue;
+
+                        let cres = res[j];
+                        if (cres == null || cres.length == 0)
+                            continue req; // Request is invalid, don't even touch it.
+
+                        for (let k = 0; k < constraints.length; k++) {
+                            let constraint = constraints[k].split("$");
+                            let prime = constraint[0];
+                            let target = constraint[1] || "ids";
+
+                            let s = cres.map(r => (r as any)[prime]);
+                            if (target[target.length - 1] == "s") {
+                                (query as any)[target] = ((query as any)[target] || []).concat(s).reduce((acc: number[], r: number | number[]) => r instanceof Array ? acc.concat(r) : acc.concat([r]), [] as number[]);
+                            } else {
+                                (query as any)[target] = s[0];
+                            }
+                        }
+                    }
+                }
+                if ((query.ids?.length || 0) > 0) {
+                    subres = subres.filter(r => query.ids!.indexOf(r.id) != -1);
+                }
+                if (query.parentids) {
+                    subres = subres.filter(r => query.parentids!.indexOf((r as IControlledEntity).parentId))
+                }
+                if (query.minid) {
+                    subres = subres.filter(r => r.id >= query.minid!);
+                }
+                if (query.maxid) {
+                    subres = subres.filter(r => r.id <= query.minid!);
+                }
+                if (query.name && [EntityType.Content, EntityType.Category].includes(req.entity)) {
+                    subres = subres.filter(r => sqlSimilar((r as INamedEntity).name, query.name!));
+                }
+                if (query.username && req.entity == EntityType.User) {
+                    subres = subres.filter(r => sqlSimilar((r as IUser).username, query.username!));
+                }
+                if (query.keyword && req.entity == EntityType.Content) {
+                    subres = subres.filter(r => (r as IContent).keywords.some(k => sqlSimilar(k, query.keyword!)));
+                }
+                if (query.type && req.entity == EntityType.Content) {
+                    subres = subres.filter(r => (r as INamedEntity).name);
+                }
+                switch (query.sort || "ids") {
+                    case "ids":
+                        subres = subres.sort((a, b) => a.id - b.id);
+                        break;
+                    case "random":
+                        subres = shuffle(subres);
+                        break;
+                }
+                if (query.reverse) {
+                    subres = subres.reverse();
+                }
+                if (query.skip) {
+                    subres = subres.slice(query.skip);
+                }
+                if (query.limit) {
+                    subres = subres.slice(0, query.limit);
+                }
+
+                let ids = subres.map(r => r.id);
+                this.reqcache[hashRequest(req.entity, query)] = new CachedRequest(req.entity, query, ids);
+                res.push(subres);
+            }
+            return r as IChainedResponse;
         }
     }
 
@@ -449,7 +621,8 @@ export class CacheDriver extends EventEmitter implements IDriver {
             [EntityType.Comment]: [],
             [EntityType.Content]: [],
             [EntityType.User]: [],
-            [EntityType.File]: []
+            [EntityType.File]: [],
+            requests: []
         };
 
         for (let k in EntityType) {
@@ -463,6 +636,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
             }
         }
 
+        output.requests = Object.values(this.reqcache).map(req => req.ToTransmit());
         return output;
     }
 
