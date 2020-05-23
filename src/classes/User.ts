@@ -5,7 +5,9 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import Validate from "validator";
+import isLength from "validator/lib/isLength";
+import isEmail from "validator/lib/isEmail";
+
 import { API_ENTITY } from "../constants/ApiRoutes";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
 import { IUser, IUserSelf } from "../interfaces/Views";
@@ -63,9 +65,9 @@ export class FullUser extends User implements IUserSelf {
 
     static async Login(username: string, password: string): Promise<FullUser> {
         let creds: Partial<IUserCredential> = { password };
-        if (Validate.isEmail(username)) {
+        if (isEmail(username)) {
             creds.email = username;
-        } else if (Validate.isLength(username, { min: 3, max: 20 })) {
+        } else if (isLength(username, { min: 3, max: 20 })) {
             creds.username = username;
         } else {
             throw ["Invalid username."];

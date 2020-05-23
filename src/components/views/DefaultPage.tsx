@@ -10,7 +10,6 @@ import { User } from "../../classes/User";
 import { Content } from "../../classes/Content";
 import Grid from "../layout/Grid";
 import Cell from "../layout/Cell";
-import Moment from "moment";
 import Link from "next/link";
 import MarkupView from "../functional/MarkupView";
 import Photo from "../functional/Photo";

@@ -5,16 +5,12 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import BBCode from "@bbob/react";
-
+import isURL from "validator/lib/isURL";
+import isDataURI from "validator/lib/isDataURI"
 import createPreset, { Node, TagNode } from "@bbob/preset";
-import { Dictionary } from "../../interfaces/Generic";
-import Validator from "validator";
-
-import { Html5Entities } from "html-entities";
+import BBCode from "@bbob/react";
 import React from "react";
-
-const entities = new Html5Entities;
+import { Dictionary } from "../../interfaces/Generic";
 
 function getSoleAttr(attrs: Dictionary<string | object>) {
     return Object.keys(attrs).find(key => attrs[key] == key);
@@ -43,7 +39,7 @@ const urlOptions = {
 }*/
 
 function validURL(url: string) {
-    return Validator.isURL(url, urlOptions) || /^(#[A-Za-z0-9-._~:/?#[\]@!$&'()*+,;=%]*)/.test(url);
+    return isURL(url, urlOptions) || /^(#[A-Za-z0-9-._~:/?#[\]@!$&'()*+,;=%]*)/.test(url);
 }
 
 function fixBBCode(content: (Node | string)[]) {
@@ -172,7 +168,7 @@ const tags = {
                     return "";
                 }
 
-                if (Validator.isURL(url, urlOptions) || Validator.isDataURI(url)) {
+                if (isURL(url, urlOptions) || isDataURI(url)) {
                     return url;
                 } else {
                     return "/res/img/blocked.png";

@@ -6,7 +6,10 @@
  */
 
 
-import Validate from "validator";
+import isJWT from "validator/lib/isJWT";
+import isEmail from "validator/lib/isEmail";
+import isLength from "validator/lib/isLength";
+import isUUID from "validator/lib/isUUID";
 import { API_ENTITY, API_CHAIN } from "../constants/ApiRoutes";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, IActivityFilter } from "../interfaces/API";
 import { IDriver, IChainedRequest } from "../interfaces/Driver";
@@ -26,7 +29,7 @@ export class HTTPDriver implements IDriver {
             return true;
         }
 
-        if (!Validate.isJWT(token))
+        if (!isJWT(token))
             throw ["Invalid token."];
 
         try {
@@ -57,11 +60,11 @@ export class HTTPDriver implements IDriver {
     }
 
     public async Register({ username, email, password }: IUserCredential): Promise<true> {
-        if (!Validate.isEmail(email)) {
+        if (!isEmail(email)) {
             throw ["Email is invalid."];
-        } else if (!Validate.isLength(username, { min: 3, max: 20 })) {
+        } else if (!isLength(username, { min: 3, max: 20 })) {
             throw ["Username must be between 3 and 20 characters."];
-        } else if (!Validate.isLength(password, { min: 8 })) {
+        } else if (!isLength(password, { min: 8 })) {
             throw ["Password must be over 8 characters in length."];
         }
 
@@ -83,7 +86,7 @@ export class HTTPDriver implements IDriver {
     }
 
     public async Confirm(confirmationKey: string): Promise<true> {
-        if (!Validate.isUUID(confirmationKey)) {
+        if (!isUUID(confirmationKey)) {
             throw ["Invalid confirmation key."];
         }
 
@@ -117,13 +120,13 @@ export class HTTPDriver implements IDriver {
         if (!oldPassword) {
             throw ["Old password must be provided."];
         }
-        if (username && !Validate.isLength(username, { min: 3, max: 20 })) {
+        if (username && !isLength(username, { min: 3, max: 20 })) {
             throw ["New username must be between 3 and 20 characters in length."];
         }
-        if (password && !Validate.isLength(password, { min: 8 })) {
+        if (password && !isLength(password, { min: 8 })) {
             throw ["New password must be at least 8 characters long."]
         }
-        if (email && !Validate.isEmail(email)) {
+        if (email && !isEmail(email)) {
             throw ["New email is invalid."];
         }
 
@@ -309,7 +312,7 @@ export class HTTPDriver implements IDriver {
 
             if (req.query)
                 str += "-" + JSON.stringify(req.query);
-                
+
             requests.push(str);
 
             if (req.cons)
@@ -335,7 +338,7 @@ export class HTTPDriver implements IDriver {
 
         return response;
     }
-    
+
     /*public Subscribe<T extends IView>(type: EntityType, query: Partial<ISearchQuery>): Promise<HTTPDriverSubscription<T>>{
 
     }*/

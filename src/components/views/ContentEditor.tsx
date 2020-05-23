@@ -10,7 +10,6 @@ import NintendoSwitch from "@iconify/icons-cib/nintendo-switch";
 import NintendoWiiU from "@iconify/icons-cib/wiiu";
 import CloudUpload from "@iconify/icons-mdi/cloud-upload-outline";
 import Icon from "@iconify/react";
-import moment from "moment";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd";
@@ -29,6 +28,9 @@ import Form from "../functional/Form";
 import Photo from "../functional/Photo";
 import UserPicker from "../functional/UserPicker";
 import { CRUD } from "../../interfaces/API";
+import DayJS from "dayjs";
+import Calendar from "dayjs/plugin/calendar";
+DayJS.extend(Calendar);
 
 function byteSize(bytes: number) {
     let m = bytes;
@@ -242,7 +244,7 @@ export default (({
                                     Uploaded
                             </td>
                                 <td>
-                                    {moment(keyInfo.uploaded).calendar()}
+                                    {DayJS(keyInfo.uploaded).calendar()}
                                 </td>
                             </tr>
                             <tr>
@@ -250,7 +252,7 @@ export default (({
                                     Last updated
                             </td>
                                 <td>
-                                    {moment(keyInfo.extInfo.version * 1000).subtract("9", "hours").calendar()}
+                                    {DayJS(keyInfo.extInfo.version * 1000).subtract(9, "h").calendar()}
                                 </td>
                             </tr>
                             <tr>

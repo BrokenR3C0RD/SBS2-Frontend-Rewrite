@@ -5,13 +5,15 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import Moment from "moment";
 import React from "react";
 import { Content } from "../../classes/Content";
 import { User } from "../../classes/User";
 import Cell from "../layout/Cell";
 import Grid from "../layout/Grid";
 import MarkupView from "../functional/MarkupView";
+import DayJS from "dayjs";
+import Calendar from "dayjs/plugin/calendar";
+DayJS.extend(Calendar);
 
 export default (({ user, page }) => {
     return <Grid
@@ -24,7 +26,7 @@ export default (({ user, page }) => {
         <Cell x={1} y={1} width={2}>
             <h1>{user.username}</h1>
             <div id="page-info">
-                <b>{`Joined: `}</b> {Moment(user.createDate).calendar()}
+                <b>{`Joined: `}</b> {DayJS(user.createDate).calendar()}
             </div>
         </Cell>
         <Cell x={1} y={2}>

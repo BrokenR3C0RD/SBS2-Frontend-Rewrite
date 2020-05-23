@@ -5,13 +5,15 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import moment from "moment";
 import Link from "next/link";
 import { Children } from "react";
 import { IAggregateEvent } from "../../classes/Activity";
 import { User } from "../../classes/User";
 import { CRUD, EntityType } from "../../interfaces/API";
 import { IContent, IUser, IView } from "../../interfaces/Views";
+import DayJS from "dayjs";
+import Calendar from "dayjs/plugin/calendar";
+DayJS.extend(Calendar);
 
 let LinkFromTarget = (({
     linkParts = ["/", "/", "unknown"],
@@ -104,7 +106,7 @@ let ActivityEvent = (({
                 }
             </span>
             <span className="time">
-                {moment(event.lastPost).calendar()}
+                {DayJS(event.lastPost as unknown as string).calendar()}
             </span>
         </div>
     </li>;
