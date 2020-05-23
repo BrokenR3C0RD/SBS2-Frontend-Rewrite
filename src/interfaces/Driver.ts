@@ -5,8 +5,8 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "./API";
-import { IView, IUserSelf, IFile, IChainedResponse } from "./Views";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, IActivityFilter } from "./API";
+import { IView, IUserSelf, IFile, IChainedResponse, ICommentAggregate, IEvent, IBase } from "./Views";
 
 export interface IChainedRequest<T = unknown> {
     entity: EntityType;
@@ -32,17 +32,18 @@ export interface IDriver {
     SetVariable     (name: string, value: string)           : Promise<true>;
     DeleteVariable  (name: string)                          : Promise<true>;
 
-    Create    <T extends IView> (type: EntityType, data: Partial<T>): Promise<T>;
-    Update    <T extends IView> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
-    Delete    <T extends IView> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
-    Read      <T extends IView> (type: EntityType, search: Partial<ISearchQuery>, constructor?: new (data: T) => T): Promise<T[]>;
+    Create    <T extends IBase> (type: EntityType, data: Partial<T>): Promise<T>;
+    Update    <T extends IBase> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
+    Delete    <T extends IBase> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
+    Read      <T extends IBase> (type: EntityType, search: Partial<ISearchQuery>, constructor?: new (data: T) => T): Promise<T[]>;
 
     Preload(requests: [EntityType, number[]][]): void;
 
     Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse>
 
     Upload (file: Blob) : Promise<IFile>;
-    // Subscribe <T extends IView> (type: EntityType, search: Partial<ISearchQuery>, constructor: new (data: IView) => T): Promise<ISubscription<T>>;
+
+    // Subscribe <T extends IBase> (type: EntityType, search: Partial<ISearchQuery>, constructor: new (data: IBase) => T): Promise<ISubscription<T>>;
 }
 
 export interface ISubscription<T> {

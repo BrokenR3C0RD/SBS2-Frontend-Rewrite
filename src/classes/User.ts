@@ -28,10 +28,14 @@ export class User implements IUser {
     }
 
     public Avatar(size: number = 200, square: boolean = true): string {
-        if (this.avatar != 0)
-            return `${API_ENTITY("File")}/raw/${this.avatar}?size=${size}&square=${square}`;
+        return User.Avatar({ username: this.username, avatar: this.avatar }, size, square);
+    }
+
+    public static Avatar(user: { username: string, avatar: number }, size: number = 200, square: boolean = true): string {
+        if (user.avatar != 0)
+            return `${API_ENTITY("File")}/raw/${user.avatar}?size=${size}&square=${square}`;
         else
-            return `https://www.tinygraphs.com/labs/isogrids/hexa/${this.username}?theme=seascape&size=${size}`;
+            return `https://www.tinygraphs.com/labs/isogrids/hexa/${user.username}?theme=seascape&size=${size}`;
     }
 }
 

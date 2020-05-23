@@ -10,12 +10,23 @@ import Cell from "../components/layout/Cell";
 import Link from "next/link";
 import Gallery from "../components/layout/Gallery";
 import Grid from "../components/layout/Grid";
+import ActivityFeed from "../components/views/ActivityFeed";
+import useAsync from "../hooks/Async";
+import { Activity } from "../classes/Activity";
+import Spinner from "../components/layout/Spinner";
 
 export default (({ dispatch }) => {
     useEffect(() => {
         dispatch({ type: "PAGE_LOADED" });
         dispatch({ type: "CHANGE_TITLE", title: "Home" });
-    }, [dispatch])
+    }, [dispatch]);
+
+    const [, actdata] = useAsync(() => Activity.Fetch({
+        // limit: 50,
+        includeAnonymous: true,
+        reverse: true
+    }));
+
     return <>
         <Grid
             rows={["min-content", "1fr", "min-content", "min-content"]}
@@ -47,7 +58,9 @@ export default (({ dispatch }) => {
                 </p>
             </Cell>
             <Cell x={3} y={2} width={2} height={1}>
-
+                <h2>Activity Feed</h2>
+                {actdata == null && <Spinner />}
+                {actdata && <ActivityFeed activity={actdata.activity} users={actdata.user} content={actdata.content} />}
             </Cell>
             <Cell x={1} y={4} width={4}>
                 <h2>About SmileBASIC Source</h2>

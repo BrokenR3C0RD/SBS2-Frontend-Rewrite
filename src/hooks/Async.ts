@@ -25,8 +25,6 @@ export default function useAsync<T>(promise: () => Promise<T>): [any, T | null |
         } catch (e) { if(e != null) console.error(e.stack); }
     }, [promise]);
 
-
-
     useEffect(() => {
         if (!result && lpromise) {
             lpromise

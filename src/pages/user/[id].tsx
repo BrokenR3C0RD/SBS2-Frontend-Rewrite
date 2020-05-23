@@ -16,6 +16,7 @@ import useChain from "../../hooks/Chain";
 import { EntityType } from "../../interfaces/API";
 import { IUser } from "../../interfaces/Views";
 import Head from "next/head";
+import Cell from "../../components/layout/Cell";
 
 
 const [Page, getServerSideProps] = withCache((({
@@ -55,9 +56,9 @@ const [Page, getServerSideProps] = withCache((({
     }, [id]);
 
     useEffect(() => {
-        if (resp && resp.user?.[0] !== undefined) {
+        if (resp != null) {
             dispatch({ type: "PAGE_LOADED" });
-            dispatch({ type: "CHANGE_TITLE", title: (resp.user![0] as IUser).username || "" });
+            dispatch({ type: "CHANGE_TITLE", title: (resp.user?.[0] as IUser)?.username || "" });
         } else {
             dispatch({ type: "CHANGE_TITLE", title: "User" });
         }
@@ -68,10 +69,13 @@ const [Page, getServerSideProps] = withCache((({
     return <>
         <Head>
             {preloadUser && <>
-
+                <meta property="og:title" content={preloadUser.username} />
+                <meta property="og:image" content={User.Avatar({ username: preloadUser.username, avatar: preloadUser.avatar }, 300, true)} />
+                <meta property="og:image:type" content="image/svg" />
+                <meta property="og:image:alt" content={`${preloadUser.username}'s avatar`} />
             </>}
         </Head>
-        {resp !== undefined && (resp?.user?.[0] == null || resp?.user?.length == 0) && <h1>User not found.</h1>}
+        {resp !== undefined && (resp?.user?.[0] == null || resp?.user?.length == 0) && <Cell><h1>User not found.</h1></Cell>}
         {resp && resp.user?.[0] && <UserView user={resp.user![0] as User} page={resp.content?.[0] as Content} />}
     </>;
 }) as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, cache: TransmittedCache }>, ({ id }) => id != null ?

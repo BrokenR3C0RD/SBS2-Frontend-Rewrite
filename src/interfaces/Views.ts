@@ -11,15 +11,20 @@ import { CRUD, EntityType } from "./API";
 //#region Generic Entity types.
 
 /**
- * Every view returned by the API implements this view.
- * ... except for Activity
+ * EVERYTHING has this. EVERYTHING. Not a single view doesn't contain an ID.
  */
-export interface IView {
+export interface IBase {
     /**
      * The unique ID for this item. The ID space is shared between all items in the API.
      */
     id: number;
+}
 
+/**
+ * Every view returned by the API implements this view.
+ * ... except for aggregates
+ */
+export interface IView extends IBase {
     /**
      * The date that this item was created.
      */
@@ -48,7 +53,7 @@ export interface IAggregate {
 }
 
 /** Aggregated data for comments on a specified parent along with a list of users involved. */
-export interface ICommentAggregate extends IAggregate {
+export interface ICommentAggregate extends IAggregate, IBase {
     /**
      * The parent ID of the comment aggregate.
     */
@@ -130,7 +135,9 @@ export type IChainedResponse = {
     [EntityType.Content]: IContent[],
     [EntityType.Category]: ICategory[],
     [EntityType.Comment]: IComment[],
-    [EntityType.File]: IFile[]
+    [EntityType.File]: IFile[],
+    [EntityType.CommentAggregate]: ICommentAggregate[],
+    [EntityType.Activity]: IEvent[]
 }
 
 //#endregion
@@ -275,6 +282,9 @@ export interface IEvent {
      * The ID of the content that was updated.
      */
     contentId: number;
+
+    /** The entity type of content updated. */
+    type: EntityType;
 
     /**
      * The type of content that was updated.

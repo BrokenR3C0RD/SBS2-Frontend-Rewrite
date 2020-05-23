@@ -8,10 +8,10 @@
 
 import Validate from "validator";
 import { API_ENTITY, API_CHAIN } from "../constants/ApiRoutes";
-import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, IActivityFilter } from "../interfaces/API";
 import { IDriver, IChainedRequest } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { IFile, IUserSelf, IView, IChainedResponse } from "../interfaces/Views";
+import { IFile, IUserSelf, IView, IChainedResponse, IEvent, ICommentAggregate, IBase } from "../interfaces/Views";
 import APIRequest from "./Request";
 
 export class HTTPDriver implements IDriver {
@@ -207,7 +207,7 @@ export class HTTPDriver implements IDriver {
         return true;
     }
 
-    public async Create<T extends IView>(type: EntityType, data: Partial<T>): Promise<T> {
+    public async Create<T extends IBase>(type: EntityType, data: Partial<T>): Promise<T> {
         if (!this.tok) {
             throw ["You must be logged in to perform this action."];
         }
@@ -226,13 +226,13 @@ export class HTTPDriver implements IDriver {
         )!;
     }
 
-    public async Read<T extends IView>(type: EntityType, query: Partial<ISearchQuery>, cons: new (data: T) => T): Promise<T[]> {
+    public async Read<T extends IBase>(type: EntityType, query: Partial<ISearchQuery>, cons: new (data: T) => T): Promise<T[]> {
         let resp = (
             (
                 await (
                     new APIRequest<T[]>(`${API_ENTITY(type)}`)
                         .Method("GET")
-                        .AddHeader("Authorization", this.tok ? `Bearer ${this.token}` : undefined)
+                        .AddHeader("Authorization", this.tok ? `Bearer $c{this.token}` : undefined)
                         .AddFields(query as Dictionary<string | number | (string | number)[]>)
                         .Execute()
                 )
@@ -245,7 +245,7 @@ export class HTTPDriver implements IDriver {
             return resp.map(d => new cons(d));
     }
 
-    public async Update<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
+    public async Update<T extends IBase>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
         if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
@@ -254,13 +254,13 @@ export class HTTPDriver implements IDriver {
                 new APIRequest<T>(`${API_ENTITY(type)}/${data.id}`)
                     .Method("PUT")
                     .AddHeader("Authorization", `Bearer ${this.token}`)
-                    .AddFields(data as IView)
+                    .AddFields(data as IBase)
                     .Execute()
             )
         );
     }
 
-    public async Delete<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
+    public async Delete<T extends IBase>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
         if (!this.tok)
             throw ["You must be logged in to perform this action."];
 
@@ -329,13 +329,13 @@ export class HTTPDriver implements IDriver {
 
         for (let key in response) {
             if (key in constructors) {
-                response[key as EntityType] = (response[key as EntityType]! as IView[]).map(res => new constructors[key as EntityType]!(res as IView)) as any;
+                response[key as EntityType] = (response[key as EntityType]! as IBase[]).map(res => new constructors[key as EntityType]!(res as IView)) as any;
             }
         }
 
         return response;
     }
-
+    
     /*public Subscribe<T extends IView>(type: EntityType, query: Partial<ISearchQuery>): Promise<HTTPDriverSubscription<T>>{
 
     }*/

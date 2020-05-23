@@ -29,10 +29,10 @@ export interface ISearchQuery {
  * Represents an activity filter
  */
 export interface IActivityFilter extends ISearchQuery {
-    userids: number[],
-    contentids: number[],
-    includeanonymous: boolean,
-    recentcommenttime: string
+    userIds: number[],
+    contentIds: number[],
+    includeAnonymous: boolean,
+    recentCommentTime: string
 }
 
 /**
@@ -53,15 +53,17 @@ export interface IUserSensitiveUpdate extends Partial<IUserCredential> {
 
 export enum CRUD {
     Create = "c",
-    Read =   "r",
+    Read = "r",
     Update = "u",
     Delete = "d"
 }
 
 export enum EntityType {
     Category = "category",
-    Comment  = "comment",
-    Content  = "content",
-    File     = "file",
-    User     = "user",
+    Comment = "comment",
+    Content = "content",
+    File = "file",
+    User = "user",
+    CommentAggregate = "commentaggregate",
+    Activity = "activity"
 }

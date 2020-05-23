@@ -8,7 +8,7 @@
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
 import { IDriver, IChainedRequest } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { IUserSelf, IView, ICategory, IComment, IContent, IUser, IFile, IControlledEntity, INamedEntity, IChainedResponse } from "../interfaces/Views";
+import { IUserSelf, IView, ICategory, IComment, IContent, IUser, IFile, IControlledEntity, INamedEntity, IChainedResponse, ICommentAggregate, IEvent, IBase } from "../interfaces/Views";
 import { HTTPDriver } from "./HTTPDriver";
 import { EventEmitter } from "./Event";
 
@@ -46,10 +46,10 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 type DriverCache = {
-    [i in EntityType]?: Dictionary<CachedItem<IView>>
+    [i in EntityType]?: Dictionary<CachedItem<IBase>>
 }
 
-class CachedItem<T extends IView> {
+class CachedItem<T extends IBase> {
     private data: T;
     private entityType: EntityType;
     private lastUpdate: Date = new Date();
@@ -87,7 +87,7 @@ class CachedItem<T extends IView> {
     }
 }
 
-class CachedRequest<T extends IView> {
+class CachedRequest<T extends IBase> {
     private request: Partial<ISearchQuery> = {};
     private data: number[];
     private entityType: EntityType;
@@ -142,14 +142,14 @@ function hashRequest(type: EntityType, req: Partial<ISearchQuery>): string {
 
 // Cache locking is kinda gross.
 class CacheLock extends EventEmitter {
-    private value?: IView;
-    public Unlock(lockedItem: IView) {
+    private value?: IBase;
+    public Unlock(lockedItem: IBase) {
         this._Dispatch("done", this.value = lockedItem);
     }
-    public async AwaitUnlock(): Promise<IView> {
+    public async AwaitUnlock(): Promise<IBase> {
         if (this.value)
             return this.value;
-        return (await this.ResolveOn("done"))[0] as IView;
+        return (await this.ResolveOn("done"))[0] as IBase;
     }
 }
 
@@ -162,6 +162,8 @@ export type TransmittedCache = {
     [EntityType.Content]: IContent[],
     [EntityType.User]: IUser[],
     [EntityType.File]: IFile[],
+    [EntityType.CommentAggregate]: ICommentAggregate[],
+    [EntityType.Activity]: IEvent[],
     requests: TransmittedRequest[]
 }
 
@@ -190,7 +192,9 @@ export class CacheDriver extends EventEmitter implements IDriver {
         [EntityType.Comment]: {},
         [EntityType.Content]: {},
         [EntityType.User]: {},
-        [EntityType.File]: {}
+        [EntityType.File]: {},
+        [EntityType.CommentAggregate]: {},
+        [EntityType.Activity]: {}
     };
 
     public constructor(cacheData?: TransmittedCache) {
@@ -226,7 +230,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         }
     }
 
-    private async cacheRequest(type: EntityType, req: Partial<ISearchQuery>, failOnExpiry: boolean = false): Promise<IView[]> {
+    private async cacheRequest(type: EntityType, req: Partial<ISearchQuery>, failOnExpiry: boolean = false): Promise<IBase[]> {
         let hash = hashRequest(type, req);
         if (this.reqcache[hash] && !this.reqcache[hash].Expired) {
             return (await this.reqcache[hash].Get())!;
@@ -252,7 +256,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         }
     }
 
-    public async Read<T extends IView>(type: EntityType, query: Partial<ISearchQuery>, cons?: new (data: T) => T, failOnExpiry: boolean = false): Promise<T[]> {
+    public async Read<T extends IBase>(type: EntityType, query: Partial<ISearchQuery>, cons?: new (data: T) => T, failOnExpiry: boolean = false): Promise<T[]> {
         this.cache[type] = this.cache[type] || {};
 
         let results: T[] = [];
@@ -319,7 +323,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         return results;
     }
 
-    public async Create<T extends IView>(type: EntityType, data: Partial<T>): Promise<T> {
+    public async Create<T extends IBase>(type: EntityType, data: Partial<T>): Promise<T> {
         let res = await this.currentDriver.Create<T>(type, data);
 
         // We'll cache the returned object, that way we don't have to worry about multiple requests
@@ -330,7 +334,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         return res;
     }
 
-    public async Update<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
+    public async Update<T extends IBase>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
         let res = await this.currentDriver.Update(type, data);
         if (res == null)
             return null;
@@ -349,7 +353,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         return res;
     }
 
-    public async Delete<T extends IView>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
+    public async Delete<T extends IBase>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null> {
         let res = await this.currentDriver.Delete(type, data);
         if (res == null)
             return null;
@@ -622,6 +626,8 @@ export class CacheDriver extends EventEmitter implements IDriver {
             [EntityType.Content]: [],
             [EntityType.User]: [],
             [EntityType.File]: [],
+            [EntityType.CommentAggregate]: [],
+            [EntityType.Activity]: [],
             requests: []
         };
 
