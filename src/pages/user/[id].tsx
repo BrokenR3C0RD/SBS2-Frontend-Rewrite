@@ -70,8 +70,8 @@ const [Page, getServerSideProps] = withCache((({
         <Head>
             {preloadUser && <>
                 <meta property="og:title" content={preloadUser.username} />
-                <meta property="og:image" content={User.Avatar({ username: preloadUser.username, avatar: preloadUser.avatar }, 300, true)} />
-                <meta property="og:image:type" content="image/svg" />
+                <meta key="ogi" property="og:image" content={User.Avatar({ username: preloadUser.username, avatar: preloadUser.avatar }, undefined, true)} />
+                <meta property="og:image:type" content="image/svg+xml" />
                 <meta property="og:image:alt" content={`${preloadUser.username}'s avatar`} />
             </>}
         </Head>

@@ -172,13 +172,13 @@ export default (({
             <meta name="description" content="A community for learning to program and sharing programs made with SmileBASIC for the Nintendo 3DS and Switch." />
             <meta name="keywords" content="programming, programs, 3DS, Switch, Nintendo, SmileBASIC, BASIC, debugging, resources" />
 
-            <meta property="og:description" content="A community for learning to program and sharing programs made with SmileBASIC for the Nintendo 3DS and Switch." />
-            <meta property="og:image" content="https://new.smilebasicsource.com/res/img/logo.svg" />
-            <meta property="og:type" content="website" />
+            <meta key="ogd" property="og:description" content="A community for learning to program and sharing programs made with SmileBASIC for the Nintendo 3DS and Switch." />
+            <meta key="ogi" property="og:image" content="https://new.smilebasicsource.com/res/img/logo.svg" />
+            <meta key="ogt" property="og:type" content="website" />
             <meta property="og:site_name" content="SmileBASIC Source" />
-            <meta property="og:url" content={`https://new.smilebasicsource.com${Router.asPath}`} />
+            <meta property="og:url" content={`https://oboy.smilebasicsource.com:49420${Router.asPath}`} />
 
-            <link rel="canonical" href={`https://new.smilebasicsource.com${Router.asPath}`} />
+            <link rel="canonical" href={`https://oboy.smilebasicsource.com:49420${Router.asPath}`} />
 
             <link rel="stylesheet" href="/res/styles/normalize.css" />
             <link rel="stylesheet" href="/res/styles/global.css" />
