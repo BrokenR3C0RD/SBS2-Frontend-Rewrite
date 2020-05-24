@@ -24,7 +24,7 @@
     "damerau-levenshtein": "^1.0.6",
     "dayjs": "^1.8.27",
     "isomorphic-fetch": "^2.2.1",
-    "next": "^9.3.7-canary.12",
+    "next": "^9.4.2-canary.5",
     "preact": "^10.4.4",
     "preact-compat": "^3.19.0",
     "preact-render-to-string": "^5.1.8",
