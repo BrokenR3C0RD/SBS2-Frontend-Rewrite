@@ -6,6 +6,7 @@ module.exports = withBundleAnalyzer(module.exports = {
         modern: true,
         polyfillsOptimization: true
     },
+    target: "serverless",
 
     webpack(config, {
         dev,
