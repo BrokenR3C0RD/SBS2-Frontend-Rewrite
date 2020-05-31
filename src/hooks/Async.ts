@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
  * @param promise The promise to evaluate
  * @returns [ Error, Result ]
  */
-export default function useAsync<T>(promise: () => Promise<T>): [any, T | null | undefined] {
+export default function useAsync<T>(promise: () => Promise<T>, deps: any[] = []): [any, T | null | undefined] {
     const [result, setResult] = useState<T | null>();
     const [error, setError] = useState<any>();
     const [lpromise, setlPromise] = useState<Promise<T>>();
@@ -22,14 +22,18 @@ export default function useAsync<T>(promise: () => Promise<T>): [any, T | null |
             if (!lpromise) {
                 setlPromise(promise());
             }
-        } catch (e) { if(e != null) console.error(e.stack); }
+        } catch (e) { if (e != null) console.error(e.stack); }
     }, [promise]);
+
+    useEffect(() => {
+        setlPromise(promise());
+    }, deps);
 
     useEffect(() => {
         if (!result && lpromise) {
             lpromise
-                .then(res => setResult(res))
-                .catch(err => {setError(err); setResult(null)});
+                .then(res => { console.log(res); setResult(() => res) })
+                .catch(err => { setError(err); setResult(null) });
         }
     }, [lpromise]);
 

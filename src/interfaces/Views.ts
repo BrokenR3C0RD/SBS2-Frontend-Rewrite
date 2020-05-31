@@ -6,7 +6,7 @@
  */
 
 import { Dictionary } from "./Generic";
-import { CRUD, EntityType } from "./API";
+import { CRUD, EntityType, Vote } from "./API";
 
 //#region Generic Entity types.
 
@@ -210,14 +210,29 @@ export interface IContent extends INamedEntity {
      */
     keywords: string[];
 
-    /**
-     * Aggregate data about comments on this Content.
-     */
-    comments: IAggregate;
-    /**
-     * Aggregate data about watches on this Content.
-     */
-    watches: IAggregate;
+    /** Stores aggregate information for this Content. */
+    about: {
+        /**
+         * Aggregate data about comments on this Content.
+         */
+        comments: IAggregate;
+
+        /**
+         * Aggregate data about watches on this Content.
+         */
+        watches: IAggregate;
+
+        /** Aggregate data about votes made on this Content. */
+        votes: {
+            [i in Vote]: IAggregate;
+        }
+
+        /** Whether or not the current user is watching this content. */
+        watching: boolean;
+
+        /** The vote that this user has given this content. null if no vote was made. */
+        myVote: Vote | null;
+    }
 }
 
 /**

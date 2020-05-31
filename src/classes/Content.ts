@@ -5,7 +5,7 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import { EntityType, ISearchQuery } from "../interfaces/API";
+import { EntityType, ISearchQuery, Vote } from "../interfaces/API";
 import { IContent, ICommentAggregate, IAggregate } from "../interfaces/Views";
 import { Category } from "./Category";
 import { NamedEntity } from "./Entity";
@@ -17,16 +17,22 @@ export class Content extends NamedEntity implements IContent {
     readonly type: string;
     readonly content: string;
     readonly keywords: string[];
-    readonly comments: IAggregate;
-    readonly watches: IAggregate;
+    readonly about: {
+        comments: IAggregate;
+        watches: IAggregate;
+        votes: {
+            [i in Vote]: IAggregate
+        },
+        watching: boolean,
+        myVote: Vote | null
+    };
 
-    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values, type, content, keywords, comments, watches }: IContent) {
+    public constructor({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values, type, content, keywords, about }: IContent) {
         super({ id, createDate, editDate, createUserId, editUserId, parentId, permissions, myPerms, name, values });
         this.type = type;
         this.content = content;
         this.keywords = keywords;
-        this.comments = comments;
-        this.watches = watches;
+        this.about = about;
     }
 
     public static async Get(query: Partial<ISearchQuery>): Promise<Content[]> {

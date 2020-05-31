@@ -16,6 +16,6 @@ export default (({ dispatch, theme }) => {
         <div style={{ float: "left", height: "2em" }}>
             &copy; 2020 SmileBASIC Source
         </div>
-        <button onClick={() => dispatch({ type: "SET_THEME" })}><InlineIcon icon={theme === "dark" ? ClosedSwitch : OpenSwitch} /></button>
+        <button aria-label="Switch theme" onClick={() => dispatch({ type: "SET_THEME" })}><InlineIcon icon={theme === "dark" ? ClosedSwitch : OpenSwitch} /></button>
     </footer>;
 }) as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, theme: string }>;

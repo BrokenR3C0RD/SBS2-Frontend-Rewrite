@@ -2,11 +2,11 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
     enabled: process.env.ANALYZE === 'true',
 })
 module.exports = withBundleAnalyzer(module.exports = {
-    experimental: {
-        modern: true,
-        polyfillsOptimization: true
-    },
-    target: "serverless",
+    // experimental: {
+    //     modern: true,
+    //     polyfillsOptimization: true
+    // },
+    // compress: true,
 
     webpack(config, {
         dev,

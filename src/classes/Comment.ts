@@ -6,3 +6,4 @@
  */
 
 // TODO: Implement comments
+import { IComment } from "../interfaces/Views";

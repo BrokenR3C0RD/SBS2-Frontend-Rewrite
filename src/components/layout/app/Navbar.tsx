@@ -133,7 +133,7 @@ export default (({ dispatch, user, userOpen }) => {
     return <nav>
         <span id="nav-brand">
             <Link href="/"><a>
-                <img src="/res/img/logo.svg" />
+                <img src="/res/img/logo.svg" alt="(OK)" />
             </a>
             </Link>
         </span>
@@ -154,7 +154,7 @@ export default (({ dispatch, user, userOpen }) => {
             </div>
         </span>
 
-        <img src="/res/img/hamburger.png" id="show-sidebar" onClick={() => dispatch({ type: "TOGGLE_SIDE" })} />
+        <img src="/res/img/hamburger.png" aria-role="button" aria-pressed="false" tabIndex={0} id="show-sidebar" onClick={() => dispatch({ type: "TOGGLE_SIDE" })} alt="Toggle Sidebar" />
         <div id="user-info" data-open={userOpen}>
             {user && (
                 <>
@@ -168,7 +168,7 @@ export default (({ dispatch, user, userOpen }) => {
                 </>
             )}
             {!user && <>
-                <button onClick={() => dispatch({ type: "TOGGLE_USER" })}><Icon icon={LoginIcon} className="user-avatar" /></button>
+                <button onClick={() => dispatch({ type: "TOGGLE_USER" })} aria-label="Log In"><Icon icon={LoginIcon} className="user-avatar" /></button>
                 <ul>
                     <h2>Login</h2>
                     <Form onSubmit={DoLogin}>

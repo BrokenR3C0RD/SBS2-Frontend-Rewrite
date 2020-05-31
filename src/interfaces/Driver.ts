@@ -37,8 +37,6 @@ export interface IDriver {
     Delete    <T extends IBase> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
     Read      <T extends IBase> (type: EntityType, search: Partial<ISearchQuery>, constructor?: new (data: T) => T): Promise<T[]>;
 
-    Preload(requests: [EntityType, number[]][]): void;
-
     Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse>
 
     Upload (file: Blob) : Promise<IFile>;

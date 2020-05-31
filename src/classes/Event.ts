@@ -35,7 +35,7 @@ export abstract class EventEmitter {
         }
     }
 
-    public Once(event: string, callback: EventCallback<unknown[]>){
+    public Once(event: string, callback: EventCallback<unknown[]>) {
         const id = this.On(event, async (...data) => {
             await callback(data);
             return this.Off(event, id);
@@ -51,7 +51,10 @@ export abstract class EventEmitter {
         });
     }
 
-    public AllOff(event: string){
-        this.listeners[event] = [];
+    public AllOff(event?: string) {
+        if (event)
+            this.listeners[event] = [];
+        else
+            this.listeners = {};
     }
 }

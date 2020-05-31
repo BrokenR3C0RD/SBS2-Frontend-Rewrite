@@ -14,6 +14,7 @@ import ActivityFeed from "../components/views/ActivityFeed";
 import useAsync from "../hooks/Async";
 import { Activity } from "../classes/Activity";
 import Spinner from "../components/layout/Spinner";
+import useActivity from "../hooks/Activity";
 
 export default (({ dispatch }) => {
     useEffect(() => {
@@ -21,11 +22,11 @@ export default (({ dispatch }) => {
         dispatch({ type: "CHANGE_TITLE", title: "Home" });
     }, [dispatch]);
 
-    const [, actdata] = useAsync(() => Activity.Fetch({
+    const actdata = useActivity({
         // limit: 50,
         includeAnonymous: true,
         reverse: true
-    }));
+    });
 
     return <>
         <Grid

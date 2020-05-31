@@ -58,6 +58,12 @@ export enum CRUD {
     Delete = "d"
 }
 
+export enum Vote {
+    Bad = "b",
+    Okay = "o",
+    Good = "g"
+}
+
 export enum EntityType {
     Category = "category",
     Comment = "comment",

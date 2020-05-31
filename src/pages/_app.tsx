@@ -18,10 +18,15 @@ import { NextPage } from "next";
 import Head from "next/head";
 import { AppProps } from "next/app";
 import Boundary from "../components/functional/ErrorBoundary";
-import "isomorphic-fetch";
+
+import "../styles/normalize.css";
+import "../styles/global.css";
+import "../styles/dark.css";
+import "../styles/light.css";
 
 import { CacheDriver } from "../classes/CacheDriver";
 import { EntityType } from "../interfaces/API";
+import { API_ROOT } from "../constants/ApiRoutes";
 
 if (typeof window === "object") {
     window.Intercept = new CacheDriver();
@@ -179,11 +184,9 @@ export default (({
             <meta property="og:url" content={`https://oboy.smilebasicsource.com:49420${Router.asPath}`} />
 
             <link rel="canonical" href={`https://oboy.smilebasicsource.com:49420${Router.asPath}`} />
+            <link rel="preconnect" href={API_ROOT} crossOrigin="anonymous" />
+            <link rel="preconnect" href="https://www.tinygraphs.com" crossOrigin="anonymous" />A
 
-            <link rel="stylesheet" href="/res/styles/normalize.css" />
-            <link rel="stylesheet" href="/res/styles/global.css" />
-            <link rel="stylesheet" href="/res/styles/light.css" />
-            <link rel="stylesheet" href="/res/styles/dark.css" />
             <title>{state.title ? `${state.title} | SmileBASIC Source` : "SmileBASIC Source"}</title>
         </Head>
         <Navbar dispatch={dispatch} user={state.user} userOpen={state.userOpen} />
