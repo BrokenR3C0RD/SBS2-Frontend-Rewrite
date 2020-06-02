@@ -154,9 +154,9 @@ export class Activity {
         }, [] as IAggregateEvent[]);
 
         return {
-            activity: aggregate.reverse(),
-            user: data.user,
-            content: data.content
+            activity: aggregate.slice().reverse(),
+            user: data.user.slice(),
+            content: data.content.slice()
         };
     }
 }

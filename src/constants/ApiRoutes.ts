@@ -7,5 +7,5 @@
 
 
 export const API_ROOT = "//newdev.smilebasicsource.com";
-export const API_ENTITY = (type: string) => `${API_ROOT}/api/${type === "commentaggregate" ? "comment/aggregate" : type}`;
+export const API_ENTITY = (type: string) => `${API_ROOT}/api/${type.indexOf("aggregate") != -1 ? `${type.split("aggregate")[0]}/aggregate` : type}`;
 export const API_CHAIN = `${API_ROOT}/api/read/chain`;

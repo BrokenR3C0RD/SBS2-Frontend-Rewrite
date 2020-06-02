@@ -5,13 +5,13 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import useAsync from "./Async";
-import { IChainedRequest } from "../interfaces/Driver";
-import { useCallback, useState, useEffect, useReducer, Reducer } from "react";
-import { IChainedResponse, IBase } from "../interfaces/Views";
-import { CacheItem, ChainCacheResponse, CachedChainRequest } from "../classes/CacheDriver";
 import equal from "deep-equal";
+import { useEffect, useState } from "react";
+import { CachedChainRequest, CacheItem, ChainCacheResponse } from "../classes/CacheDriver";
 import { EntityType } from "../interfaces/API";
+import { IChainedRequest } from "../interfaces/Driver";
+import { IBase, IChainedResponse } from "../interfaces/Views";
+import useAsync from "./Async";
 
 export default function useChain(request: () => (IChainedRequest<any>[] | null), dependencies: any[]) {
     const [data, setData] = useState<IChainedResponse>();
@@ -32,17 +32,16 @@ export default function useChain(request: () => (IChainedRequest<any>[] | null),
         }
     }, dependencies)
 
-    let [, res] = useAsync<IChainedResponse | null>(useCallback(() => {
+    let [, res] = useAsync<IChainedResponse | null>(() => {
         try {
             let req = request();
-            console.log(req);
             if (req != null) {
                 setReq(req);
                 return Intercept.Chain(req);
             } else
                 return Promise.resolve(null);
         } catch (e) { e != null && console.error(e); throw null; }
-    }, dependencies));
+    }, dependencies);
 
     useEffect(() => {
         if (req != null && res != null && !equal(data, res)) {
@@ -55,7 +54,8 @@ export default function useChain(request: () => (IChainedRequest<any>[] | null),
     useEffect(() => {
         if (chained) {
             let ref2 = chained.On("update", async (nr) => {
-                setResponse(resp => !equal(resp, nr) ? nr as IChainedResponse : resp);
+                let r = await Intercept.Chain(req!);
+                setData(resp => equal(resp, r) ? resp : r);
             });
             chained.UpdateRefCount(1);
             setChained(chained);
@@ -71,14 +71,7 @@ export default function useChain(request: () => (IChainedRequest<any>[] | null),
                 const type = key as EntityType;
                 let items = Intercept.GetCacheItems(type, (data[type] as IBase[]).map(d => d.id)).filter(v => v != null);
                 nitems[type] = items;
-                // Updating every item = bad idea
-                // Just redo the entire chain when it's time
-                /*items.forEach(item => {
-                    item.On("expired", async () => {
-                        setUpdate(update => !update);
-                    });
-                    item.UpdateRefCount(1)
-                });*/
+
             }
             setItems(nitems);
         }
@@ -90,27 +83,36 @@ export default function useChain(request: () => (IChainedRequest<any>[] | null),
                     const type = key as EntityType;
                     let items = nitems[type]!;
                     resp[type] = resp[type] || [];
+
+                    let cons = req?.filter(r => r.entity == type)?.find(r => r.cons != null)?.cons;
                     if (items.length == 0) {
                         let resItems = res![type]! as IBase[];
                         for (let i = 0; i < resItems.length; i++) {
-                            resp[type]!.push(resItems[i]);
+                            if (cons)
+                                resp[type]!.push(new cons(resItems[i]) as IBase);
+                            else
+                                resp[type]!.push(resItems[i]);
                         }
                     } else {
                         for (let i = 0; i < items.length; i++) {
                             let item = items[i];
                             let nval = await item.AwaitValue();
-                            if (nval) resp[type]!.push(nval);
+                            if (nval) {
+                                if (cons)
+                                    resp[type]!.push(new cons(nval) as IBase);
+                                else
+                                    resp[type]!.push(nval);
+                            }
                         }
                     }
                 }
                 setResponse(res => {
-                    console.log("Checking ", resp, res, equal(res, resp));
                     return !equal(res, resp) ? resp : res
                 });
             })();
         }
     }, [data, items]);
 
-    console.log("actual hook returning", response);
     return response;
 }
+

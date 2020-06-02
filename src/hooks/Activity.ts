@@ -10,6 +10,7 @@ import { IAggregateEvent } from "../classes/Activity";
 import useChain from "./Chain";
 import { useCallback, useEffect, useState } from "react";
 import { IComment, ICommentAggregate, IEvent, IContent, IUser } from "../interfaces/Views";
+import equal from "deep-equal";
 
 // Returns true if the arrays have the same data.
 function hasSameData(arr1: number[], arr2: number[]): boolean {
@@ -23,35 +24,44 @@ function removeDuplicates<T>(arr: T[]): T[] {
 }
 
 export default function useActivity(filter?: Partial<IActivityFilter>) {
+    const [lastFilter, setLastFilter] = useState<Partial<IActivityFilter> | null>(null);
+    useEffect(() => {
+        if (!equal(lastFilter, filter)) {
+            setLastFilter(filter ?? {});
+        }
+    }, [filter]);
     let data = useChain(
-        () => [
-            {
-                entity: EntityType.Activity,
-                query: filter
-            },
-            {
-                entity: EntityType.CommentAggregate,
-                query: filter
-            },
-            {
-                entity: EntityType.Content,
-                fields: ["id", "name", "type", "parentId"],
-                constraint: [
-                    ["contentId"],
-                    ["id"]
-                ]
-            },
-            {
-                entity: EntityType.User,
-                fields: ["id", "username", "avatar"],
-                constraint: [
-                    ["userId", "contentId"],
-                    ["userIds"],
-                    ["parentId"]
-                ]
-            }
-        ],
-        [filter]);
+        () => {
+            if (lastFilter == null) throw null;
+            return [
+                {
+                    entity: EntityType.Activity,
+                    query: filter
+                },
+                {
+                    entity: EntityType.CommentAggregate,
+                    query: filter
+                },
+                {
+                    entity: EntityType.Content,
+                    fields: ["id", "name", "type", "parentId"],
+                    constraint: [
+                        ["contentId"],
+                        ["id"]
+                    ]
+                },
+                {
+                    entity: EntityType.User,
+                    fields: ["id", "username", "avatar"],
+                    constraint: [
+                        ["userId", "contentId"],
+                        ["userIds"],
+                        ["parentId"]
+                    ]
+                }
+            ];
+        },
+        [lastFilter]);
 
     const [aggregate, setAggregate] = useState<IAggregateEvent[]>();
 
@@ -80,6 +90,9 @@ export default function useActivity(filter?: Partial<IActivityFilter>) {
         for (let i = 0; i < comments.length; i++) {
             let event = comments[i] as ICommentAggregate;
             let content = data.content!.find(con => con.id == event.id)! as IContent;
+            if (content == null) {
+                continue;
+            }
 
             aggregate.push({
                 count: event.count,
@@ -138,8 +151,8 @@ export default function useActivity(filter?: Partial<IActivityFilter>) {
     }, [data]);
 
     return aggregate && data ? {
-        activity: aggregate.reverse(),
-        user: data.user! as IUser[],
-        content: data.content! as IContent[]
+        activity: aggregate.slice().reverse(),
+        user: data.user!.slice() as IUser[],
+        content: data.content!.slice() as IContent[]
     } : undefined;
 }

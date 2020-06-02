@@ -70,6 +70,8 @@ export enum EntityType {
     Content = "content",
     File = "file",
     User = "user",
+    Activity = "activity",
     CommentAggregate = "commentaggregate",
-    Activity = "activity"
+    ActivityAggregate = "activityaggregate",
+    Vote = "vote"
 }

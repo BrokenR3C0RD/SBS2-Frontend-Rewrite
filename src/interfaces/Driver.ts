@@ -5,8 +5,10 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, IActivityFilter } from "./API";
-import { IView, IUserSelf, IFile, IChainedResponse, ICommentAggregate, IEvent, IBase } from "./Views";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, IActivityFilter, Vote } from "./API";
+import { IView, IUserSelf, IFile, IChainedResponse, ICommentAggregate, IEvent, IBase, IContent, IComment, IListenActionQuery, IListenListenerQuery, IVote, IWatch } from "./Views";
+import { EventEmitter } from "../classes/Event";
+import { Dictionary } from "@bbob/preset";
 
 export interface IChainedRequest<T = unknown> {
     entity: EntityType;
@@ -16,36 +18,50 @@ export interface IChainedRequest<T = unknown> {
     fields?: (keyof T)[];
 }
 
-export interface IDriver {
+export interface IDriver extends EventEmitter {
     token: string;
 
-    Authenticate    (token?: string): Promise<boolean>;
-    Login           (creds: Partial<IUserCredential>)       : Promise<true>;
-    Register        (creds: IUserCredential)                : Promise<true>;
-    Confirm         (token: string)                         : Promise<true>;
-    Self            ()                                      : Promise<IUserSelf | null>;
-    UpdateSensitive (update: Partial<IUserSensitiveUpdate>) : Promise<true>;
-    UpdateAvatar    (id: number)                            : Promise<true>;
+    Authenticate(token?: string): Promise<boolean>;
+    Login(creds: Partial<IUserCredential>): Promise<true>;
+    Register(creds: IUserCredential): Promise<true>;
+    Confirm(token: string): Promise<true>;
+    Self(): Promise<IUserSelf | null>;
+    UpdateSensitive(update: Partial<IUserSensitiveUpdate>): Promise<true>;
+    UpdateAvatar(id: number): Promise<true>;
 
-    ListVariables   ()                                      : Promise<string[] >;
-    GetVariable     (name: string)                          : Promise<string | null>;
-    SetVariable     (name: string, value: string)           : Promise<true>;
-    DeleteVariable  (name: string)                          : Promise<true>;
+    ListVariables(): Promise<string[]>;
+    GetVariable(name: string): Promise<string | null>;
+    SetVariable(name: string, value: string): Promise<true>;
+    DeleteVariable(name: string): Promise<true>;
 
-    Create    <T extends IBase> (type: EntityType, data: Partial<T>): Promise<T>;
-    Update    <T extends IBase> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
-    Delete    <T extends IBase> (type: EntityType, data: Partial<T> & {id: number}): Promise<T | null>;
-    Read      <T extends IBase> (type: EntityType, search: Partial<ISearchQuery>, constructor?: new (data: T) => T): Promise<T[]>;
+    Create<T extends IBase>(type: EntityType, data: Partial<T>): Promise<T>;
+    Update<T extends IBase>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null>;
+    Delete<T extends IBase>(type: EntityType, data: Partial<T> & { id: number }): Promise<T | null>;
+    Read<T extends IBase>(type: EntityType, search: Partial<ISearchQuery>, constructor?: new (data: T) => T): Promise<T[]>;
 
     Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse>
 
-    Upload (file: Blob) : Promise<IFile>;
+    Upload(file: Blob): Promise<IFile>;
 
-    // Subscribe <T extends IBase> (type: EntityType, search: Partial<ISearchQuery>, constructor: new (data: IBase) => T): Promise<ISubscription<T>>;
+    Vote(content: Partial<IContent> & { id: number }, vote: Vote | null): Promise<IVote | null>;
+    Watch(content: Partial<IContent> & { id: number }): Promise<IWatch | null>;
+    Unwatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null>;
+    ClearWatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null>;
+
+    CreateSubscription(actions: IListenActionQuery[], listens: IListenListenerQuery[]): ISubscription;
 }
 
-export interface ISubscription<T> {
-    AddListener(callback: (data: T) => never): void;
-    RemoveListener(callback: (data:T) => never): void;
-    Unsubscribe(): Promise<void>;
+export interface ISubscription extends EventEmitter {
+    readonly Connected: boolean;
+    readonly Listeners: Dictionary<Dictionary<string>>;
+
+    SetStatus(content: Partial<IContent> & { id: number }, status: string | null): this;
+    AddActionQuery(action: IListenActionQuery[]): this;
+    AddListenerQuery(action: IListenListenerQuery[]): this;
+    RemoveActionQuery(action: IListenActionQuery[]): this;
+    RemoveListenerQuery(action: IListenListenerQuery[]): this;
+
+    GetAllActionQueries(): IListenActionQuery[];
+    GetAllListenerQueries(): IListenListenerQuery[];
+    Destroy(): Promise<void>;
 }

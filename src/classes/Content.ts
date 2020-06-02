@@ -35,6 +35,10 @@ export class Content extends NamedEntity implements IContent {
         this.about = about;
     }
 
+    public async Vote(vote: Vote | null): Promise<Content[]> {
+        
+    }
+
     public static async Get(query: Partial<ISearchQuery>): Promise<Content[]> {
         return await Intercept.Read(EntityType.Content, query, Content);
     }

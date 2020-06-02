@@ -66,6 +66,14 @@ export interface ICommentAggregate extends IAggregate, IBase {
 }
 
 /**
+ * Aggregated data for activity events.
+ */
+export interface IActivityAggregate extends ICommentAggregate {
+    /** The last ID that is part of this aggregate. */
+    lastId: number;
+}
+
+/**
  * Stores information about watched content.
  */
 export interface IWatchInformation extends IView {
@@ -137,7 +145,10 @@ export type IChainedResponse = {
     [EntityType.Comment]: IComment[],
     [EntityType.File]: IFile[],
     [EntityType.CommentAggregate]: ICommentAggregate[],
-    [EntityType.Activity]: IEvent[]
+    [EntityType.Activity]: IEvent[],
+    [EntityType.ActivityAggregate]: IActivityAggregate[],
+    [EntityType.Vote]: IVote[],
+
 }
 
 //#endregion
@@ -270,6 +281,30 @@ export interface IFile extends IControlledEntity {
     fileType: string;
 }
 
+/**
+ * Represents a vote on a content.
+ */
+export interface IVote extends IView {
+    /** The User who made this vote. */
+    userId: number;
+    /** The Content this vote was made for. */
+    contentId: number;
+    /** The vote this user gave (Bad, Okay, Great) */
+    vote?: Vote
+}
+
+/**
+ * Represents a watch on a content.
+ */
+export interface IWatch extends IView {
+    /** The User that owns this watch. */
+    userId: number;
+    /** The Content being watched. */
+    contentId: number;
+    /** The last notification ID viewed. */
+    lastNotificationId: number;
+}
+
 //#endregion
 
 //#region Activity types
@@ -318,3 +353,20 @@ export interface IEvent {
 }
 
 //#endregion
+
+
+export interface IListenActionQuery {
+    lastId: number;
+    statuses: Dictionary<string>,
+    chain: string[]
+}
+
+export interface IListenListenerQuery {
+    lastListeners: Dictionary<Dictionary<string>>;
+    chain: string[]
+}
+
+export interface IListenChainResponse {
+    listeners: Dictionary<Dictionary<string>>;
+    chain: Partial<IChainedResponse>;
+}

@@ -6,18 +6,19 @@
  */
 
 
-import isJWT from "validator/lib/isJWT";
 import isEmail from "validator/lib/isEmail";
+import isJWT from "validator/lib/isJWT";
 import isLength from "validator/lib/isLength";
 import isUUID from "validator/lib/isUUID";
-import { API_ENTITY, API_CHAIN } from "../constants/ApiRoutes";
-import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, IActivityFilter } from "../interfaces/API";
-import { IDriver, IChainedRequest } from "../interfaces/Driver";
+import { API_CHAIN, API_ENTITY } from "../constants/ApiRoutes";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, Vote } from "../interfaces/API";
+import { IChainedRequest, IDriver, ISubscription } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
-import { IFile, IUserSelf, IView, IChainedResponse, IEvent, ICommentAggregate, IBase } from "../interfaces/Views";
+import { IBase, IChainedResponse, IContent, IFile, IListenActionQuery, IListenChainResponse, IListenListenerQuery, IUserSelf, IView, IVote, IWatch } from "../interfaces/Views";
+import { EventEmitter } from "./Event";
 import APIRequest from "./Request";
 
-export class HTTPDriver implements IDriver {
+export class HTTPDriver extends EventEmitter implements IDriver {
     private tok?: string;
     public get token(): string {
         return this.tok || "";
@@ -26,6 +27,7 @@ export class HTTPDriver implements IDriver {
     public async Authenticate(token?: string): Promise<boolean> {
         if (!token) {
             this.tok = undefined;
+            this._Dispatch("authenticated", token);
             return true;
         }
 
@@ -41,6 +43,7 @@ export class HTTPDriver implements IDriver {
             );
 
             this.tok = token;
+            this._Dispatch("authenticated", token);
             return true;
         } catch (e) {
             console.error("Error occurred during authentication: ", e.join(", "));
@@ -235,7 +238,7 @@ export class HTTPDriver implements IDriver {
                 await (
                     new APIRequest<T[]>(`${API_ENTITY(type)}`)
                         .Method("GET")
-                        .AddHeader("Authorization", this.tok ? `Bearer $c{this.token}` : undefined)
+                        .AddHeader("Authorization", this.tok ? `Bearer ${this.token}` : undefined)
                         .AddFields(query as Dictionary<string | number | (string | number)[]>)
                         .Execute()
                 )
@@ -292,10 +295,6 @@ export class HTTPDriver implements IDriver {
         )!;
     }
 
-    public Preload() {
-        /* NoOp */
-    }
-
     public async Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse> {
         let requests: string[] = [];
         let constructors: { [i in EntityType]?: (new (i: IView) => IView) } = {};
@@ -325,6 +324,7 @@ export class HTTPDriver implements IDriver {
         let response = (await (
             new APIRequest<IChainedResponse>(API_CHAIN)
                 .Method("GET")
+                .AddHeader("Authorization", this.tok ? `Bearer ${this.token}` : undefined)
                 .AddField("requests", requests)
                 .AddFields(fields)
                 .Execute(abort)
@@ -339,11 +339,138 @@ export class HTTPDriver implements IDriver {
         return response;
     }
 
-    /*public Subscribe<T extends IView>(type: EntityType, query: Partial<ISearchQuery>): Promise<HTTPDriverSubscription<T>>{
+    public async Vote(content: Partial<IContent> & { id: number }, vote: Vote | null): Promise<IVote | null> {
+        if (!this.tok)
+            throw ["You must be logged in to perform this action."];
 
-    }*/
+        return (await (
+            new APIRequest<IVote>(`${API_ENTITY("Vote")}/${content.id}${vote ? `/${vote}` : ""}`)
+                .Method(vote ? "POST" : "DELETE")
+                .AddHeader("Authorization", `Bearer ${this.token}`)
+                .Execute()
+        ));
+
+    }
+
+    public async Watch(content: Partial<IContent> & { id: number }): Promise<IWatch | null> {
+        if (!this.tok)
+            throw ["You must be logged in to perform this action."];
+
+        return (await (
+            new APIRequest<IWatch>(`${API_ENTITY("Watch")}/${content.id}`)
+                .Method("POST")
+                .AddHeader("Authorization", `Bearer ${this.token}`)
+                .Execute()
+        ));
+    }
+
+    public async Unwatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null> {
+        if (!this.tok)
+            throw ["You must be logged in to perform this action."];
+
+        return (await (
+            new APIRequest<IWatch>(`${API_ENTITY("Watch")}/${content.id}`)
+                .Method("DELETE")
+                .AddHeader("Authorization", `Bearer ${this.token}`)
+                .Execute()
+        ));
+    }
+
+    public async ClearWatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null> {
+        if (!this.tok)
+            throw ["You must be logged in to perform this action."];
+
+        return (await (
+            new APIRequest<IWatch>(`${API_ENTITY("Watch")}/${content.id}/clear`)
+                .Method("POST")
+                .AddHeader("Authorization", `Bearer ${this.token}`)
+                .Execute()
+        ));
+    }
+
+    private subscription: HTTPDriverSubscription = new HTTPDriverSubscription(this);
+    public CreateSubscription(actions: IListenActionQuery[], listens: IListenListenerQuery[]): HTTPDriverSubscription {
+        return this.subscription.AddActionQuery(actions).AddListenerQuery(listens);
+    }
 }
 
-/*export class HTTPDriverSubscription<T> implements ISubscription<T> {
+export class HTTPDriverSubscription extends EventEmitter implements ISubscription {
+    private _actionQueries: IListenActionQuery[] = [];
+    private _listenerQueries: IListenListenerQuery[] = [];
+    private _listeners: Dictionary<Dictionary<string>> = {};
+    private _statuses: Dictionary<string> = {};
 
-}*/
+    private connected: boolean = false;
+    private abort: AbortController = new AbortController();
+
+    private _driver: HTTPDriver;
+    private _authRef: number;
+
+    private request: APIRequest<IListenChainResponse> = new APIRequest(`${API_ENTITY("Read/listen")}`)
+
+    public get Listeners(): Dictionary<Dictionary<string>> {
+        return this._listeners;
+    }
+    public get Connected(): boolean {
+        return this.connected;
+    }
+
+    public constructor(driver: HTTPDriver) {
+        super();
+        this._driver = driver;
+        this._authRef = driver.On("authenticated", async (token) => {
+            this._updateConnection();
+        });
+    }
+
+    private _updateConnection() {
+        if (this.connected) {
+            this.abort.abort();
+            this.connected = false;
+        }
+
+        let token = this._driver.token;
+        if (token == "") {
+            return;
+        }
+    }
+
+    public SetStatus(content: Partial<IContent> & { id: number }, status: string | null) {
+        if (status)
+            this._statuses[content.id] = status;
+        else
+            delete this._statuses[content.id];
+
+        this._updateConnection();
+        return this;
+    }
+    public AddActionQuery(action: IListenActionQuery[]): this {
+        this._actionQueries = this._actionQueries.concat(action).reduce<IListenActionQuery[]>((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, []);
+        this._updateConnection();
+        return this;
+    }
+
+    public AddListenerQuery(action: IListenListenerQuery[]): this {
+        this._listenerQueries = this._listenerQueries.concat(action).reduce<IListenListenerQuery[]>((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, []);
+        this._updateConnection();
+        return this;
+    };
+    public RemoveActionQuery(action: IListenActionQuery[]): this {
+        return this;
+    };
+    public RemoveListenerQuery(action: IListenListenerQuery[]): this {
+        return this;
+    };
+    public GetAllActionQueries(): IListenActionQuery[] {
+        return this._actionQueries.slice()
+    };
+    public GetAllListenerQueries(): IListenListenerQuery[] {
+        return this._listenerQueries.slice();
+    };
+    public async Destroy(): Promise<void> {
+        this.abort.abort();
+        this._driver.Off("authenticated", this._authRef);
+    }
+
+
+}

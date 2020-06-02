@@ -8,7 +8,7 @@
 import { IDriver, IChainedRequest } from "../interfaces/Driver";
 import { HTTPDriver } from "./HTTPDriver";
 import { EventEmitter } from "./Event";
-import { IBase, IEvent, ICategory, IComment, ICommentAggregate, IContent, IFile, IUser, IUserSelf, IChainedResponse } from "../interfaces/Views";
+import { IBase, IEvent, ICategory, IComment, ICommentAggregate, IContent, IFile, IUser, IUserSelf, IChainedResponse, IActivityAggregate, IVote } from "../interfaces/Views";
 import { Dictionary } from "../interfaces/Generic";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
 import equal from "deep-equal";
@@ -223,19 +223,15 @@ type Cache = {
     [EntityType.Category]: Dictionary<CacheItem<ICategory>>,
     [EntityType.Comment]: Dictionary<CacheItem<IComment>>,
     [EntityType.CommentAggregate]: Dictionary<CacheItem<ICommentAggregate>>,
+    [EntityType.ActivityAggregate]: Dictionary<CacheItem<IActivityAggregate>>,
     [EntityType.Content]: Dictionary<CacheItem<IContent>>,
     [EntityType.File]: Dictionary<CacheItem<IFile>>,
-    [EntityType.User]: Dictionary<CacheItem<IUser>>
+    [EntityType.User]: Dictionary<CacheItem<IUser>>,
+    [EntityType.Vote]: Dictionary<CacheItem<IVote>>
 }
 
 type RequestCache = {
-    [EntityType.Activity]: Dictionary<CachedRequest>,
-    [EntityType.Category]: Dictionary<CachedRequest>,
-    [EntityType.Comment]: Dictionary<CachedRequest>,
-    [EntityType.CommentAggregate]: Dictionary<CachedRequest>,
-    [EntityType.Content]: Dictionary<CachedRequest>,
-    [EntityType.File]: Dictionary<CachedRequest>,
-    [EntityType.User]: Dictionary<CachedRequest>
+    [i in EntityType]: Dictionary<CachedRequest>
 }
 
 type ChainCache = {
@@ -253,18 +249,22 @@ export class CacheDriver extends EventEmitter implements IDriver {
         [EntityType.Category]: {},
         [EntityType.Comment]: {},
         [EntityType.CommentAggregate]: {},
+        [EntityType.ActivityAggregate]: {},
         [EntityType.Content]: {},
         [EntityType.File]: {},
-        [EntityType.User]: {}
+        [EntityType.User]: {},
+        [EntityType.Vote]: {}
     }
     private reqcache: RequestCache = {
         [EntityType.Activity]: {},
         [EntityType.Category]: {},
         [EntityType.Comment]: {},
         [EntityType.CommentAggregate]: {},
+        [EntityType.ActivityAggregate]: {},
         [EntityType.Content]: {},
         [EntityType.File]: {},
-        [EntityType.User]: {}
+        [EntityType.User]: {},
+        [EntityType.Vote]: {}
     }
     private chaincache: ChainCache = {}
 
@@ -327,8 +327,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
         } else {
             this.chaincache[hash] = new CachedChainRequest(request, data);
             this.chaincache[hash].On("expired", async () => {
-                console.log("data expired");
-                this.Chain(request);
+                await this.Chain(request);
             });
         }
         return this.chaincache[hash];
@@ -423,7 +422,7 @@ export class CacheDriver extends EventEmitter implements IDriver {
                 if (this.cache[type][ids[i]] && !this.cache[type][ids[i]].expired) {
                     results.push((await this.cache[type][ids[i]].AwaitValue())! as IBase as T);
                 } else {
-                    this.cache[type][ids[i]] = new CacheItem<any>(null);
+                    this.cache[type][ids[i]] = this.cache[type][ids[i]] ?? new CacheItem<any>(null);
                     uncached.push(ids[i]);
                 }
             }
@@ -487,16 +486,18 @@ export class CacheDriver extends EventEmitter implements IDriver {
     public async Chain(request: IChainedRequest<any>[], abort?: AbortSignal | boolean): Promise<IChainedResponse> {
         let hash = hashChain(request);
         let resp: IChainedResponse;
-        if (this.chaincache[hash]) {
+        if (this.chaincache[hash] && !this.chaincache[hash].expired) {
             let d = await this.chaincache[hash].AwaitValue();
             resp = {
                 [EntityType.Activity]: [],
                 [EntityType.Category]: [],
                 [EntityType.Comment]: [],
                 [EntityType.CommentAggregate]: [],
+                [EntityType.ActivityAggregate]: [],
                 [EntityType.Content]: [],
                 [EntityType.File]: [],
-                [EntityType.User]: []
+                [EntityType.User]: [],
+                [EntityType.Vote]: []
             };
 
             for (let k in d) {

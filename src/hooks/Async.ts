@@ -26,13 +26,15 @@ export default function useAsync<T>(promise: () => Promise<T>, deps: any[] = [])
     }, [promise]);
 
     useEffect(() => {
-        setlPromise(promise());
+        try {
+            setlPromise(promise());
+        } catch (e) { if (e != null) console.error(e.stack); }
     }, deps);
 
     useEffect(() => {
         if (!result && lpromise) {
             lpromise
-                .then(res => { console.log(res); setResult(() => res) })
+                .then(res => { setResult(() => res) })
                 .catch(err => { setError(err); setResult(null) });
         }
     }, [lpromise]);

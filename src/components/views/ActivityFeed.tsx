@@ -36,7 +36,7 @@ let ActivityEvent = (({
 
     const targets = (event.type == EntityType.User ? users as IView[] : content as IView[]).filter(r => event.ids.includes(r.id));
     let involved = users.filter(u => event.uids.includes(u.id!));
-    if (involved.length == 0 && event.type === EntityType.User && event.action === CRUD.Create)
+    if (involved.length == 0 && event.type === EntityType.User)
         involved = targets; // Probably means we're working with a user creation
 
     const data = targets.map(target => {
@@ -79,7 +79,7 @@ let ActivityEvent = (({
                                 case CRUD.Create:
                                     return <>created an account.</>;
                                 case CRUD.Update:
-                                    return <>updated their account.</>;
+                                    return <>confirmed their account.</>;
                                 case CRUD.Delete:
                                     return <>deleted their account.</>;
                             }
