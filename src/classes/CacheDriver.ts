@@ -96,13 +96,13 @@ function hashChain(request: IChainedRequest[]) {
 export class CachedRequest extends EventEmitter {
     public type: EntityType;
     public request: Partial<ISearchQuery>;
-    public response: number[];
+    public response?: number[];
     private updateInterval: number;
     private refs: number = 0;
     private updateTimeout: number = NaN;
     public expired: boolean = false;
 
-    public constructor(type: EntityType, request: Partial<ISearchQuery>, response: number[], updateInterval: number = 30000) {
+    public constructor(type: EntityType, request: Partial<ISearchQuery>, response?: number[], updateInterval: number = 30000) {
         super();
         this.type = type;
         this.request = request;
@@ -154,19 +154,19 @@ export class CachedRequest extends EventEmitter {
             await this.ResolveOn("update");
         }
         this.UpdateRefCount(-1);
-        return this.response;
+        return this.response!;
     }
 }
 
 export class CachedChainRequest extends EventEmitter {
     public request: Partial<IChainedRequest[]>;
-    public response: ChainCacheResponse;
+    public response?: ChainCacheResponse;
     private updateInterval: number;
     private refs: number = 0;
     private updateTimeout: number = NaN;
     public expired: boolean = false;
 
-    public constructor(request: IChainedRequest[], response: ChainCacheResponse, updateInterval: number = 30000) {
+    public constructor(request: IChainedRequest[], response?: ChainCacheResponse, updateInterval: number = 30000) {
         super();
         this.request = request;
         this.response = response;
@@ -210,7 +210,7 @@ export class CachedChainRequest extends EventEmitter {
 
     public async AwaitValue() {
         this.UpdateRefCount(1)
-        if (this.expired) {
+        if (this.expired || this.response == null) {
             await this.ResolveOn("update");
         }
         this.UpdateRefCount(-1);
@@ -346,9 +346,9 @@ export class CacheDriver extends EventEmitter implements IDriver {
             this.chaincache[hash].Update(data);
         } else {
             this.chaincache[hash] = new CachedChainRequest(request, data);
-            this.chaincache[hash].On("expired", async () => {
+            /*this.chaincache[hash].On("expired", async () => {
                 await this.Chain(request);
-            });
+            });*/
         }
         return this.chaincache[hash];
     }
@@ -503,10 +503,16 @@ export class CacheDriver extends EventEmitter implements IDriver {
         return res;
     }
 
+    private fieldQueued: Dictionary<CachedChainRequest> = {};
+
     public async Chain(request: IChainedRequest<any>[], abort?: AbortSignal | boolean): Promise<IChainedResponse> {
         let hash = hashChain(request);
         let resp: IChainedResponse;
-        if (this.chaincache[hash] && !this.chaincache[hash].expired) {
+        if (this.fieldQueued[hash]) {
+            let resp = await this.fieldQueued[hash].AwaitValue() as unknown as IChainedResponse;
+            delete this.fieldQueued[hash];
+            return resp;
+        } else if (this.chaincache[hash] && !this.chaincache[hash].expired) {
             let d = await this.chaincache[hash].AwaitValue();
             resp = {
                 [EntityType.Activity]: [],
@@ -527,8 +533,17 @@ export class CacheDriver extends EventEmitter implements IDriver {
 
             return resp;
         } else {
+            if (request.some(req => (req.fields || []).length > 0))
+                this.fieldQueued[hash] = new CachedChainRequest(request);
+            else
+                this.chaincache[hash] = new CachedChainRequest(request);
+
             let resp = await this.currentDriver.Chain(request);
-            this._cacheChain(request, resp);
+            if (request.some(req => (req.fields || []).length > 0))
+                this.fieldQueued[hash].Update(resp as unknown as ChainCacheResponse);
+            else
+                this._cacheChain(request, resp);
+
             return resp;
         }
     }

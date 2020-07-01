@@ -63,6 +63,7 @@ export default function useActivity(filter?: Partial<IActivityFilter>) {
             ];
         },
         [lastFilter]);
+    
 
     const [aggregate, setAggregate] = useState<IAggregateEvent[]>();
 
@@ -150,6 +151,7 @@ export default function useActivity(filter?: Partial<IActivityFilter>) {
 
         setAggregate(aggregate);
     }, [data]);
+
 
     return aggregate && data ? {
         activity: aggregate.slice().reverse(),

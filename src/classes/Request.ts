@@ -86,7 +86,7 @@ export default class APIRequest<T> {
                 }
             }
         }
-        
+
         const hasBody = this.method !== "GET" && this.method !== "DELETE";
 
         try {
@@ -96,7 +96,7 @@ export default class APIRequest<T> {
                 headers: {
                     "Accept": "application/json",
                     ...this.headers,
-                    ...(hasBody && !this.formData ? {"Content-Type": "application/json"} : {})
+                    ...(hasBody && !this.formData ? { "Content-Type": "application/json" } : {})
                 },
                 body: hasBody ? this.rawBody || this.formData || JSON.stringify(this.data) : undefined
             });
@@ -122,7 +122,8 @@ export default class APIRequest<T> {
                 }
             }
         } catch (e) {
-            console.error("An error occurred during a request: " + (e?.stack || e.toString()));
+            if (e.name !== "AbortError")
+                console.error("An error occurred during a request: " + (e?.stack || e.toString()));
             if (e instanceof Error)
                 throw [e.stack];
             else

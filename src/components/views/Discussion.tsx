@@ -21,6 +21,8 @@ import { InlineIcon } from "@iconify/react";
 import Composer from "../functional/Composer";
 import { IComment } from "../../interfaces/Views";
 import ResizeObserver from "resize-observer-polyfill";
+import { useInView } from "react-intersection-observer";
+import Spinner from "../layout/Spinner";
 
 type MergedComments = IComment & { Contents: { content: string, markup: string }[] }
 
@@ -29,12 +31,22 @@ export default (({
     discussion,
     comments,
     users,
-    listeners
+    listeners,
+    loading,
+    more,
+    loadMore
 }) => {
     const [composer, setComposer] = useState<boolean>(false);
     const [code, setCode] = useState<string>("");
     const [markup, setMarkup] = useState<string>("plaintext");
     const [mcomments, setMComments] = useState<MergedComments[]>([]);
+    const [ref, inView] = useInView({});
+
+    useEffect(() => {
+        if (!loading && inView && more) {
+            loadMore();
+        }
+    }, [inView]);
 
     async function PostComment() {
         Comment.Create(discussion, code, markup);
@@ -57,9 +69,10 @@ export default (({
                 });
             }
         }
+        console.log(comments);
 
         setMComments(coms);
-    }, [comments]);
+    }, [comments.length]);
 
     // Autoscroll
     const divRef = useRef<HTMLDivElement>(null);
@@ -69,11 +82,12 @@ export default (({
                 let entry = entries[0].target;
                 if (entry.scrollTop >= (entry.scrollHeight - entry.clientHeight * 5 / 4)) {
                     entry.scrollTo({
-                        top: entry.scrollHeight - entry.clientHeight,
+                        top: entry.scrollHeight,
                         left: 0,
                         behavior: "smooth"
                     });
                 }
+
             });
             resizeObserver.observe(divRef.current!);
             return () => resizeObserver.disconnect();
@@ -98,6 +112,9 @@ export default (({
                     )}
                 </ul>
                 <div className="comments-list" ref={divRef}>
+                    {more && <div className="comments-loadmore" ref={ref}>
+                        {loading && <Spinner />}
+                    </div>}
                     {mcomments.map((comment, i) => {
                         let user = users.find(user => user.id == comment.createUserId);
                         if (user == null)
@@ -152,5 +169,8 @@ export default (({
     discussion: Content,
     comments: Comment[],
     listeners: User[],
-    users: User[]
+    users: User[],
+    loading: boolean,
+    more: boolean,
+    loadMore: () => void
 }>;

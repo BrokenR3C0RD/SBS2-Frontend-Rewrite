@@ -54,6 +54,7 @@ export default (({ dispatch }) => {
         >
             <Cell x={1} y={1} width={4}>
                 <h1>Welcome to SmileBASIC Source!</h1>
+                <Link href="/discussions/[id]" as="/discussions/384"><a>Test</a></Link>
             </Cell>
             <Cell x={1} y={2} width={2}>
                 <h2>

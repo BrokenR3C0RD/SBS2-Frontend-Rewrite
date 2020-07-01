@@ -5,61 +5,120 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import { IContent, IChainedResponse, IComment } from "../interfaces/Views";
+import { Dictionary } from "../interfaces/Generic";
 import { useEffect, useState } from "react";
-import { User } from "../classes/User";
-import { Dictionary } from "@bbob/preset";
-import { EntityType } from "../interfaces/API";
-import useChain from "./Chain";
 import { Comment } from "../classes/Comment";
+import { User } from "../classes/User";
+import { IChainedResponse } from "../interfaces/Views";
 
-export default function useComments(content: IContent | undefined): [Comment[], User[], User[]] {
+export default function useComments(contentId: number | undefined): [Comment[], User[], User[], boolean, boolean, () => void] {
     const [comments, setComments] = useState<Comment[]>([]);
-    const [listenerIds, setListenerIds] = useState<number[]>([0]);
+    const [listenerIds, setListenerIds] = useState<number[]>([]);
     const [users, setUsers] = useState<User[]>([]);
+    const [fetching, setFetching] = useState<boolean>(false);
+    const [more, setMore] = useState<boolean>(false);
+    const [listen, setListen] = useState<boolean>(false);
 
     useEffect(() => {
-        if (content == null)
+        if (contentId == null || listen)
             return;
 
-        Intercept.SetStatus("Online", content.id);
+        Comment
+            .Fetch({ id: contentId }, {
+                reverse: true,
+                limit: 40
+            })
+            .then(([comments, users]) => {
+                setComments(comments.sort((a, b) => a.id - b.id));
+                setUsers(users);
+                setListen(true);
+                setMore(comments.length >= 40);
+            });
+    }, [contentId])
+
+    useEffect(() => {
+        if (contentId == null || !listen)
+            return;
+
+        Intercept.SetStatus("Online", contentId);
+        setListenerIds(Object.keys(Intercept.Listeners[contentId] || {}).map(id => +id));
 
         let eid = Intercept.On("listener.chains", async (chain: IChainedResponse) => {
-            let comms = chain?.comment?.filter(comment => comment.parentId == content.id) || [];
+            let comms = chain?.comment?.filter(comment => comment.parentId == contentId) || [];
             if (comms.length > 0) {
-                setComments(comments => comments.concat(comms.map(comment => new Comment(comment))));
-            }
-            setUsers(users => {
-                chain.user?.forEach(user => {
-                    let idx = users.findIndex(u => u.id == user.id);
-                    if(idx != -1)
-                        users[idx] = new User(user);
-                    else
-                        users.push(new User(user));
+                setComments(comments => {
+                    let newcoms = comments.slice();
+                    comms.forEach(comment => {
+                        let idx = newcoms.findIndex(u => u.id == comment.id);
+                        if (idx != -1)
+                            newcoms[idx] = new Comment(comment);
+                        else
+                            newcoms.push(new Comment(comment));
+                    })
+                    return newcoms.sort((a, b) => a.id - b.id);
                 });
-                return users;
-            });
+            }
+            if (chain.user)
+                setUsers(users => {
+                    chain.user?.forEach(user => {
+                        let idx = users.findIndex(u => u.id == user.id);
+                        if (idx != -1)
+                            users[idx] = new User(user);
+                        else
+                            users.push(new User(user));
+                    });
+                    return users;
+                });
         });
         let lid = Intercept.On("listener.listeners", async (list: Dictionary<Dictionary<string>>) => {
-            if (list[content.id]) {
-                console.log(list[content.id]);
-                setListenerIds(Object.keys(list[content.id]).map(id => +id));
+            if (list[contentId]) {
+                setListenerIds(Object.keys(list[contentId]).map(id => +id));
             }
         });
         return () => { Intercept.Off("listener.chains", eid); Intercept.Off("listener.listeners", lid); }
-    }, [content?.id]);
+    }, [contentId, listen]);
 
-    const chain = useChain(() => listenerIds.length == 0
-        ? null
-        : [{
-            entity: EntityType.User,
-            query: {
-                ids: listenerIds
-            },
-            cons: User
-        }], [listenerIds, content?.id]);
+    useEffect(() => {
+        if (fetching && contentId != null && comments.length != 0) {
+            let maxid = Math.min.apply(Math, comments.map(comment => comment.id));
+            Comment
+                .Fetch({ id: contentId }, {
+                    maxid,
+                    limit: 30,
+                    reverse: true
+                })
+                .then(([newc, newu]) => {
+                    setComments(comments => {
+                        let newcoms = comments.slice();
+                        newc.forEach(comment => {
+                            let idx = newcoms.findIndex(u => u.id == comment.id);
+                            if (idx != -1)
+                                newcoms[idx] = new Comment(comment);
+                            else
+                                newcoms.push(new Comment(comment));
+                        })
+                        return newcoms.sort((a, b) => a.id - b.id);
+                    });
+                    setUsers(users => {
+                        newu.forEach(user => {
+                            let idx = users.findIndex(u => u.id == user.id);
+                            if (idx != -1)
+                                users[idx] = user;
+                            else
+                                users.push(user);
+                        });
+                        return users;
+                    });
+                    setMore(newc.length >= 30);
+                    setFetching(false);
+                });
+        } else {
+            console.log(fetching, contentId, comments.length);
+            setFetching(false);
+        }
+    }, [fetching]);
 
-    console.log(chain);
+    console.log(users, listenerIds);
 
-    return [comments as Comment[], (chain?.user || []) as User[], users];
+    return [comments as Comment[], users.filter(user => listenerIds.includes(user.id)), users, fetching, more, () => setFetching(more)];
 }

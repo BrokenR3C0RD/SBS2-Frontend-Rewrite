@@ -8,8 +8,9 @@
 // TODO: Implement comments
 import { IComment } from "../interfaces/Views";
 import { Entity } from "./Entity";
-import { EntityType } from "../interfaces/API";
+import { EntityType, ISearchQuery } from "../interfaces/API";
 import { Content } from "./Content";
+import { User } from "./User";
 
 export class Comment extends Entity implements IComment {
     EntityType = EntityType.Comment;
@@ -31,13 +32,45 @@ export class Comment extends Entity implements IComment {
             content: `${JSON.stringify({ 'm': markup })}\n${message}`
         } as Partial<IComment>)
     }
+    public static async Fetch(parent: Partial<Content> & { id: number }, query: Partial<ISearchQuery>): Promise<[Comment[], User[]]> {
+        let res = await Intercept.Chain([
+            {
+                entity: EntityType.Comment,
+                query: {
+                    parentids: [parent.id],
+                    ...query
+                },
+                cons: Comment
+            },
+            {
+                entity: EntityType.User,
+                constraint: [
+                    [
+                        "createUserId",
+                        "editUserId"
+                    ]
+                ],
+                cons: User
+            }
+        ]);
+
+        return [res.comment as Comment[] || [], res.user as User[] || []];
+    }
 
     public get Markup(): string {
-        return JSON.parse(this.content.split("\n")[0]).m;
+        try {
+            return JSON.parse(this.content.split("\n")[0]).m;
+        } catch(e){
+            return "plaintext";
+        }
     }
     public get Content(): string {
-        return this.content.indexOf("\n") == -1
-            ? JSON.parse(this.content).t
-            : this.content.split("\n").slice(1).join("\n");
+        try {
+            return this.content.indexOf("\n") === -1
+                ? JSON.parse(this.content).t
+                : this.content.split("\n").slice(1).join("\n");
+        } catch (e) {
+            return "";
+        }
     }
 }

@@ -38,14 +38,14 @@ const Discussion = function ({
             query: {
                 ids: [+id]
             },
-            cons: Content as any
+            cons: Content
         },
         {
             entity: EntityType.User,
             constraint: [
                 ["createUserId", "editUserId"]
             ],
-            cons: User as any
+            cons: User
         }];
     }, [id]);
 
@@ -56,7 +56,7 @@ const Discussion = function ({
     let [createUser, setCreateUser] = useState<User>();
     let [editUser, setEditUser] = useState<User>();
 
-    let [comments, listeners, cusers] = useComments(page);
+    let [comments, listeners, cusers, loading, more, loadMore] = useComments(id ? +id : undefined);
 
     useEffect(() => {
         if (contents != null && users != null) {
@@ -74,9 +74,9 @@ const Discussion = function ({
     }, [response]);
 
     return <>
-        {contents != null && page == null && <h1>Page not found.</h1>}
+        {contents != null && contents[0] == null && <h1>Page not found.</h1>}
         {contents && page && createUser && editUser &&
-            <DiscussionView discussion={page} comments={comments} listeners={listeners} users={cusers} self={state.user} />
+            <DiscussionView discussion={page} comments={comments} listeners={listeners} users={cusers} self={state.user} loading={loading} more={more} loadMore={loadMore} />
         }
     </>;
 } as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, state: State }>;

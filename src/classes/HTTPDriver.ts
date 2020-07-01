@@ -51,6 +51,9 @@ export class HTTPDriver extends EventEmitter implements IDriver {
     public get token(): string {
         return this.tok || "";
     }
+    public get uid(): number {
+        return this.tok ? JSON.parse(atob(this.tok.split(".")[1])).uid : 0;
+    }
 
     public constructor() {
         super();
@@ -433,6 +436,7 @@ export class HTTPDriver extends EventEmitter implements IDriver {
                     } as IListenListenerQuery))
                     .Execute(this.controller.signal)
             );
+            console.log(resp);
 
             if (resp != null) {
                 this.lastId = resp.lastId;

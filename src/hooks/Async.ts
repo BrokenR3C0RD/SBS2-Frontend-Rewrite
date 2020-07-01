@@ -26,7 +26,6 @@ export default function useAsync<T>(promise: () => Promise<T>, deps: any[] = [])
     }, [promise]);
 
     useEffect(() => {
-        console.log(deps);
         try {
             setlPromise(promise());
             setResult(undefined);
