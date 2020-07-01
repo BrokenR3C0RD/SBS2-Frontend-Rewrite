@@ -5,20 +5,24 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { User, FullUser } from "../../classes/User";
 import { Content } from "../../classes/Content";
 import Grid from "../layout/Grid";
 import Cell from "../layout/Cell";
 import Link from "next/link";
 import { Comment } from "../../classes/Comment";
-import { IComment } from "../../interfaces/Views";
 import DayJS from "dayjs";
 import MarkupView from "../functional/MarkupView";
 import Form from "../functional/Form";
 import Send from "@iconify/icons-mdi/send";
 import Compose from "@iconify/icons-bytesize/compose";
 import { InlineIcon } from "@iconify/react";
+import Composer from "../functional/Composer";
+import { IComment } from "../../interfaces/Views";
+import ResizeObserver from "resize-observer-polyfill";
+
+type MergedComments = IComment & { Contents: { content: string, markup: string }[] }
 
 export default (({
     self,
@@ -27,9 +31,54 @@ export default (({
     users,
     listeners
 }) => {
-    async function PostComment() {
+    const [composer, setComposer] = useState<boolean>(false);
+    const [code, setCode] = useState<string>("");
+    const [markup, setMarkup] = useState<string>("plaintext");
+    const [mcomments, setMComments] = useState<MergedComments[]>([]);
 
+    async function PostComment() {
+        Comment.Create(discussion, code, markup);
+        setCode("");
+        return true;
     }
+
+    useEffect(() => {
+        let last: MergedComments | null = null;
+        let coms: MergedComments[] = [];
+
+        for (let i = 0; i < comments.length; i++) {
+            let cur = comments[i];
+            if (last != null && cur.createUserId == last.createUserId) {
+                last.Contents.push({ content: cur.Content, markup: cur.Markup });
+            } else {
+                coms.push(last = {
+                    ...cur,
+                    Contents: [{ content: cur.Content, markup: cur.Markup }]
+                });
+            }
+        }
+
+        setMComments(coms);
+    }, [comments]);
+
+    // Autoscroll
+    const divRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (divRef.current) {
+            let resizeObserver = new ResizeObserver((entries) => {
+                let entry = entries[0].target;
+                if (entry.scrollTop >= (entry.scrollHeight - entry.clientHeight * 5 / 4)) {
+                    entry.scrollTo({
+                        top: entry.scrollHeight - entry.clientHeight,
+                        left: 0,
+                        behavior: "smooth"
+                    });
+                }
+            });
+            resizeObserver.observe(divRef.current!);
+            return () => resizeObserver.disconnect();
+        }
+    });
 
     return <Grid
         className="discussions-grid"
@@ -48,8 +97,8 @@ export default (({
                         </li>
                     )}
                 </ul>
-                <div className="comments-list">
-                    {comments.map((comment, i) => {
+                <div className="comments-list" ref={divRef}>
+                    {mcomments.map((comment, i) => {
                         let user = users.find(user => user.id == comment.createUserId);
                         if (user == null)
                             return null;
@@ -70,27 +119,34 @@ export default (({
                                         {DayJS(comment.createDate).calendar()}
                                     </span>
                                 </div>
-                                <div className="comment-content">
-                                    <MarkupView markupLang={comment.Markup} code={comment.Content} />
-                                </div>
+                                {comment.Contents.map((comment, j) =>
+                                    <div className="comment-content" key={j} >
+                                        <MarkupView markupLang={comment.markup} code={comment.content} />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     })}
                 </div>
             </div>
             <Form className="discussion-input" onSubmit={PostComment}>
-                <textarea />
-                <div className="discussion-buttons">
+                {composer
+                    ? <Composer hidePreview code={code} markup={markup} onChange={(code, markup) => { setCode(code); setMarkup(markup); }} />
+                    : <textarea value={code} onInput={evt => setCode(evt.currentTarget.value)} onKeyPress={evt => {
+                        if (!evt.shiftKey && evt.key == "Enter") { evt.preventDefault(); PostComment() }
+                    }} />}
+                < div className="discussion-buttons" >
                     <button type="submit">
                         <InlineIcon icon={Send} />
                     </button>
-                    <button type="button">
+                    <button type="button" onClick={() => setComposer(!composer)}>
                         <InlineIcon icon={Compose} />
+                        {` ${markup == "plaintext" ? "" : markup}`}
                     </button>
                 </div>
             </Form>
         </Cell>
-    </Grid>;
+    </Grid >;
 }) as React.FunctionComponent<{
     self: FullUser | null,
     discussion: Content,

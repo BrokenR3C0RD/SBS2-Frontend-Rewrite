@@ -344,10 +344,14 @@ nav #show-sidebar:active {
 
 .discussion-comments .comment-listeners {
     margin: 0;
-    padding: .25em;
-    max-width: calc(100% - 2.75em);
-    background-color: var(--secondary-bg);
+    padding: 0;
+    max-width: 100%;
+    min-height: 2em;
+    background-color: var(--sidebar-background);
+    line-height: 0;
+    box-shadow: 0 2px 5px var(--shadow);
 }
+
 
 .discussion-comments .comments-list {
     overflow-y: auto;
@@ -574,7 +578,7 @@ nav #user-info button .user-avatar {
     position: relative;
     font-size: 1em;
     background-color: var(--cell-background);
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 #content {
@@ -1469,11 +1473,23 @@ div.comment .comment-content {
 
 .comment-listeners li {
     display: inline-block;
+    height: 2em;
+}
+.comment-listeners li > a {
+    display: inline-block;
+    height: 2em;
+    line-height: 2rem;
+}
+.comment-listeners li > a > img {
+    display: inline-block;
+    width: 2em;
+    line-height: 2rem;
+    height: 2em;
 }
 
 .comment-listeners {
     list-style: none;
-    display: inline-block;
+    display: block;
     width: 100%;
     padding: .5em;
     background-color: var(--secondary-bg);
