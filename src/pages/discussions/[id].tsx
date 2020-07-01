@@ -12,11 +12,13 @@ import { Content } from "../../classes/Content";
 import { User } from '../../classes/User';
 import DefaultPageView from "../../components/views/DefaultPage";
 import ProgramPageView from "../../components/views/ProgramPage";
+import DiscussionView from "../../components/views/Discussion";
 import useChain from '../../hooks/Chain';
 import { EntityType } from "../../interfaces/API";
 import ProgramPage from "../../components/views/ProgramPage";
+import useComments from "../../hooks/Comment";
 
-const Page = function ({
+const Discussion = function ({
     dispatch,
     state
 }) {
@@ -54,6 +56,8 @@ const Page = function ({
     let [createUser, setCreateUser] = useState<User>();
     let [editUser, setEditUser] = useState<User>();
 
+    let [comments, listeners, cusers] = useComments(page);
+
     useEffect(() => {
         if (contents != null && users != null) {
             if (contents[0]) {
@@ -72,11 +76,9 @@ const Page = function ({
     return <>
         {contents != null && page == null && <h1>Page not found.</h1>}
         {contents && page && createUser && editUser &&
-            (page.type == "@page.program"
-                ? <ProgramPageView page={page} createUser={createUser} editUser={editUser} />
-                : <DefaultPageView page={page} createUser={createUser} editUser={editUser} self={state.user} />)
+            <DiscussionView discussion={page} comments={comments} listeners={listeners} users={cusers} self={state.user} />
         }
     </>;
 } as React.FunctionComponent<{ dispatch: React.Dispatch<Action>, state: State }>;
 
-export default Page;
+export default Discussion;

@@ -5,23 +5,56 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-
 import isEmail from "validator/lib/isEmail";
 import isJWT from "validator/lib/isJWT";
 import isLength from "validator/lib/isLength";
 import isUUID from "validator/lib/isUUID";
 import { API_CHAIN, API_ENTITY } from "../constants/ApiRoutes";
 import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, Vote } from "../interfaces/API";
-import { IChainedRequest, IDriver, ISubscription } from "../interfaces/Driver";
+import { IChainedRequest, IDriver } from "../interfaces/Driver";
 import { Dictionary } from "../interfaces/Generic";
 import { IBase, IChainedResponse, IContent, IFile, IListenActionQuery, IListenChainResponse, IListenListenerQuery, IUserSelf, IView, IVote, IWatch } from "../interfaces/Views";
 import { EventEmitter } from "./Event";
 import APIRequest from "./Request";
 
+function createChainStrings(chains: IChainedRequest<IView>[]): [string[], { [i in EntityType]?: (new (i: IView) => IView) }, { [i in EntityType]?: string[] }] {
+    let requests: string[] = [];
+    let constructors: { [i in EntityType]?: (new (i: IView) => IView) } = {};
+    let fields: { [i in EntityType]?: string[] } = {};
+    for (let i = 0; i < chains.length; i++) {
+        let req = chains[i];
+        let str = req.entity as string;
+
+
+        if (req.constraint)
+            for (let j = 0; j < req.constraint.length; j++)
+                if (req.constraint[j].length > 0)
+                    str += req.constraint[j].map(constr => `.${j}${constr}`).join("");
+
+        if (req.query)
+            str += "-" + JSON.stringify(req.query);
+
+        requests.push(str);
+
+        if (req.cons)
+            constructors[req.entity] = req.cons;
+
+        if (req.fields)
+            fields[req.entity] = (fields[req.entity] || []).concat(req.fields as string[]).reduce((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, [] as string[]);
+    }
+
+    return [requests, constructors, fields];
+}
+
 export class HTTPDriver extends EventEmitter implements IDriver {
     private tok?: string;
     public get token(): string {
         return this.tok || "";
+    }
+
+    public constructor() {
+        super();
+        this.On("authenticated", this._manageListen.bind(this));
     }
 
     public async Authenticate(token?: string): Promise<boolean> {
@@ -296,30 +329,7 @@ export class HTTPDriver extends EventEmitter implements IDriver {
     }
 
     public async Chain(request: IChainedRequest<any>[], abort?: AbortSignal): Promise<IChainedResponse> {
-        let requests: string[] = [];
-        let constructors: { [i in EntityType]?: (new (i: IView) => IView) } = {};
-        let fields: { [i in EntityType]?: string[] } = {};
-        for (let i = 0; i < request.length; i++) {
-            let req = request[i];
-            let str = req.entity as string;
-
-
-            if (req.constraint)
-                for (let j = 0; j < req.constraint.length; j++)
-                    if (req.constraint[j].length > 0)
-                        str += req.constraint[j].map(constr => `.${j}${constr}`).join("");
-
-            if (req.query)
-                str += "-" + JSON.stringify(req.query);
-
-            requests.push(str);
-
-            if (req.cons)
-                constructors[req.entity] = req.cons;
-
-            if (req.fields)
-                fields[req.entity] = (fields[req.entity] || []).concat(req.fields as string[]).reduce((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, [] as string[]);
-        }
+        let [requests, constructors, fields] = createChainStrings(request);
 
         let response = (await (
             new APIRequest<IChainedResponse>(API_CHAIN)
@@ -388,89 +398,88 @@ export class HTTPDriver extends EventEmitter implements IDriver {
         ));
     }
 
-    private subscription: HTTPDriverSubscription = new HTTPDriverSubscription(this);
-    public CreateSubscription(actions: IListenActionQuery[], listens: IListenListenerQuery[]): HTTPDriverSubscription {
-        return this.subscription.AddActionQuery(actions).AddListenerQuery(listens);
-    }
-}
-
-export class HTTPDriverSubscription extends EventEmitter implements ISubscription {
-    private _actionQueries: IListenActionQuery[] = [];
-    private _listenerQueries: IListenListenerQuery[] = [];
-    private _listeners: Dictionary<Dictionary<string>> = {};
-    private _statuses: Dictionary<string> = {};
-
+    private controller: AbortController = new AbortController();
+    private queries: IChainedRequest<IView>[] = [];
+    private listenStatus: Dictionary<Dictionary<string>> = {
+        "0": {}
+    };
+    private lastId: number = -20;
     private connected: boolean = false;
-    private abort: AbortController = new AbortController();
+    private status: Dictionary<string> = {};
 
-    private _driver: HTTPDriver;
-    private _authRef: number;
+    private async _manageListen(): Promise<unknown> {
+        if (this.connected)
+            return;
 
-    private request: APIRequest<IListenChainResponse> = new APIRequest(`${API_ENTITY("Read/listen")}`)
+        if (this.tok == null)
+            return this.controller.abort();
+
+        this.controller = new AbortController();
+
+        try {
+            this.connected = true;
+            let resp = await (
+                new APIRequest<IListenChainResponse>(API_ENTITY('Read/listen'))
+                    .Method("GET")
+                    .AddHeader("Authorization", `Bearer ${this.tok}`)
+                    .AddField("actions", JSON.stringify({
+                        lastId: this.lastId,
+                        statuses: this.status,
+                        chains: createChainStrings(this.queries)[0]
+                    } as IListenActionQuery))
+                    .AddField("listeners", JSON.stringify({
+                        lastListeners: this.listenStatus,
+                        chains: ["user.0listeners"]
+                    } as IListenListenerQuery))
+                    .Execute(this.controller.signal)
+            );
+
+            if (resp != null) {
+                this.lastId = resp.lastId;
+                if (resp.listeners) {
+                    this.listenStatus = resp.listeners;
+                    await this._Dispatch("listener.listeners", resp.listeners);
+                }
+                if (resp.chains) {
+                    await this._Dispatch("listener.chains", resp.chains);
+                }
+                if (resp.warnings.length > 0)
+                    console.log("Warnings from listener: " + resp.warnings.join(", "));
+            }
+        } catch (e) {
+            if (e?.name != "AbortError") {
+                console.error(e instanceof Error
+                    ? e.stack
+                    : e);
+
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+        this.connected = false;
+        return this._manageListen();
+    }
 
     public get Listeners(): Dictionary<Dictionary<string>> {
-        return this._listeners;
-    }
-    public get Connected(): boolean {
-        return this.connected;
+        return this.listenStatus;
     }
 
-    public constructor(driver: HTTPDriver) {
-        super();
-        this._driver = driver;
-        this._authRef = driver.On("authenticated", async (token) => {
-            this._updateConnection();
-        });
-    }
-
-    private _updateConnection() {
-        if (this.connected) {
-            this.abort.abort();
-            this.connected = false;
+    public SetStatus(status: string | null, id: number = 0): Dictionary<string> {
+        if (status == null) {
+            delete this.status[id];
+            delete this.listenStatus[id];
+        } else {
+            this.status[id] = status;
+            this.listenStatus[id] = {};
         }
 
-        let token = this._driver.token;
-        if (token == "") {
-            return;
-        }
+        this.controller.abort();
+        return this.status;
     }
 
-    public SetStatus(content: Partial<IContent> & { id: number }, status: string | null) {
-        if (status)
-            this._statuses[content.id] = status;
-        else
-            delete this._statuses[content.id];
+    public SetListenChain(chain: IChainedRequest<IView>[]): IChainedRequest<IView>[] {
+        this.queries = chain.slice();
+        this.controller.abort();
 
-        this._updateConnection();
-        return this;
+        return this.queries;
     }
-    public AddActionQuery(action: IListenActionQuery[]): this {
-        this._actionQueries = this._actionQueries.concat(action).reduce<IListenActionQuery[]>((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, []);
-        this._updateConnection();
-        return this;
-    }
-
-    public AddListenerQuery(action: IListenListenerQuery[]): this {
-        this._listenerQueries = this._listenerQueries.concat(action).reduce<IListenListenerQuery[]>((acc, r) => acc.indexOf(r) == -1 ? acc.concat([r]) : acc, []);
-        this._updateConnection();
-        return this;
-    };
-    public RemoveActionQuery(action: IListenActionQuery[]): this {
-        return this;
-    };
-    public RemoveListenerQuery(action: IListenListenerQuery[]): this {
-        return this;
-    };
-    public GetAllActionQueries(): IListenActionQuery[] {
-        return this._actionQueries.slice()
-    };
-    public GetAllListenerQueries(): IListenListenerQuery[] {
-        return this._listenerQueries.slice();
-    };
-    public async Destroy(): Promise<void> {
-        this.abort.abort();
-        this._driver.Off("authenticated", this._authRef);
-    }
-
-
 }

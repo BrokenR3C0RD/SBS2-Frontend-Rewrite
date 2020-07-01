@@ -8,9 +8,9 @@
 import { IDriver, IChainedRequest } from "../interfaces/Driver";
 import { HTTPDriver } from "./HTTPDriver";
 import { EventEmitter } from "./Event";
-import { IBase, IEvent, ICategory, IComment, ICommentAggregate, IContent, IFile, IUser, IUserSelf, IChainedResponse, IActivityAggregate, IVote } from "../interfaces/Views";
+import { IBase, IEvent, ICategory, IComment, ICommentAggregate, IContent, IFile, IUser, IUserSelf, IChainedResponse, IActivityAggregate, IVote, IWatch, IView } from "../interfaces/Views";
 import { Dictionary } from "../interfaces/Generic";
-import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate } from "../interfaces/API";
+import { EntityType, ISearchQuery, IUserCredential, IUserSensitiveUpdate, Vote } from "../interfaces/API";
 import equal from "deep-equal";
 
 export class CacheItem<T extends IBase> extends EventEmitter implements IBase {
@@ -281,7 +281,24 @@ export class CacheDriver extends EventEmitter implements IDriver {
             }
         });
 
+        this.currentDriver.On("listener.listeners", async listeners => this._Dispatch("listener.listeners", listeners));
+        this.currentDriver.On("listener.chains", async (chains: IChainedResponse) => {
+            for (let key in chains) {
+                let type = key as EntityType;
+
+                let items = chains[type];
+                for (let item of items)
+                    this._cacheItem(type, item);
+            }
+
+            this._Dispatch("listener.chains", chains);
+        });
+
         this.Authenticate(token);
+    }
+
+    public get Listeners(): Dictionary<Dictionary<string>> {
+        return this.currentDriver.Listeners;
     }
 
     private _cacheItem<T extends IBase>(type: EntityType, value: T, dontUpdateAlone: boolean = false) {
@@ -290,10 +307,10 @@ export class CacheDriver extends EventEmitter implements IDriver {
             this.cache[type][id].Update(value as any);
         } else {
             this.cache[type][id] = new CacheItem(value as any);
-            if (!dontUpdateAlone)
+            /*if (!dontUpdateAlone)
                 this.cache[type][id].On("expired", async () => {
                     await this.Read(type, { ids: [id] });
-                });
+                });*/
         }
         return this.cache[type][id];
     }
@@ -307,9 +324,9 @@ export class CacheDriver extends EventEmitter implements IDriver {
             this.reqcache[type][hash].Update(value.map(v => v.id));
         } else {
             this.reqcache[type][hash] = new CachedRequest(type, request, value.map(v => v.id));
-            this.reqcache[type][hash].On("expired", async () => {
+            /*this.reqcache[type][hash].On("expired", async () => {
                 await this.Read(type, request);
-            });
+            });*/
         }
         return this.reqcache[type][hash];
     }
@@ -321,6 +338,9 @@ export class CacheDriver extends EventEmitter implements IDriver {
             data[key as EntityType] = (response[key as EntityType] as IBase[]).map((t: IBase) => t.id);
             if (!request.some(req => req.entity == key && (req.fields || []).length > 0))
                 response[key as EntityType].forEach((item: IBase) => this._cacheItem(key as EntityType, item));
+        }
+        if (request.some(req => (req.fields || []).length > 0)) {
+            return null;
         }
         if (this.chaincache[hash]) {
             this.chaincache[hash].Update(data);
@@ -513,6 +533,27 @@ export class CacheDriver extends EventEmitter implements IDriver {
         }
     }
 
+    public async Vote(content: Partial<IContent> & { id: number }, vote: Vote | null): Promise<IVote | null> {
+        let resp = await this.currentDriver.Vote(content, vote);
+        if (resp == null)
+            delete this.cache[EntityType.Vote][content.id];
+        else
+            this._cacheItem(EntityType.Vote, resp);
+
+        return resp;
+    }
+
+    public async Watch(content: Partial<IContent> & { id: number }): Promise<IWatch | null> {
+        return this.currentDriver.Watch(content);
+    }
+
+    public async Unwatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null> {
+        return this.currentDriver.Unwatch(content);
+    }
+
+    public async ClearWatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null> {
+        return this.currentDriver.ClearWatch(content);
+    }
 
     public GetCacheItems(type: EntityType, ids: number[]): CacheItem<IBase>[] {
         let results: CacheItem<IBase>[] = [];
@@ -526,5 +567,12 @@ export class CacheDriver extends EventEmitter implements IDriver {
     }
     public GetChainedRequest(request: IChainedRequest[]): CachedChainRequest {
         return this.chaincache[hashChain(request)];
+    }
+
+    public SetStatus(status: string | null, id?: number) {
+        return this.currentDriver.SetStatus(status, id);
+    }
+    public SetListenChain(chain: IChainedRequest<IView>[]) {
+        return this.currentDriver.SetListenChain(chain);
     }
 }

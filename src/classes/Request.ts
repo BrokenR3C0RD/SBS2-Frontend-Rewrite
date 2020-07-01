@@ -5,6 +5,8 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
+
 import { Dictionary } from "../interfaces/Generic";
 import { IView } from "../interfaces/Views";
 

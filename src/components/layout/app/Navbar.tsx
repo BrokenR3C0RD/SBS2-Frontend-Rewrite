@@ -47,7 +47,7 @@ export default (({ dispatch, user, userOpen }) => {
                             {
                                 entity: EntityType.User,
                                 query: {
-                                    username: `%${query}%`,
+                                    usernamelike: `%${query}%`,
                                     limit: 10
                                 }
                             },

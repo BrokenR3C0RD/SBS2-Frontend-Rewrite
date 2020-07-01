@@ -35,9 +35,9 @@ export class User implements IUser {
 
     public static Avatar(user: { username: string, avatar: number }, size: number = 200, square: boolean = true): string {
         if (user.avatar != 0)
-            return `${API_ENTITY("File")}/raw/${user.avatar}?size=${size}&square=${square}`;
+            return `${API_ENTITY("File")}/raw/${user.avatar}?size=${size}&crop=${square}`;
         else
-            return `https://www.tinygraphs.com/labs/isogrids/hexa/${user.username}?theme=seascape&size=${size}`;
+            return `https://a.sbapi.me/labs/isogrids/hexa/${user.username}?theme=seascape&size=${size}`;
     }
 }
 

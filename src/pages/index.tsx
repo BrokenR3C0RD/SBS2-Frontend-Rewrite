@@ -5,16 +5,18 @@
  * Copyright (c) 2020 MasterR3C0RD
  */
 
-import React, { useEffect } from "react";
-import Cell from "../components/layout/Cell";
 import Link from "next/link";
+import React, { useEffect } from "react";
+import { Content } from "../classes/Content";
+import Cell from "../components/layout/Cell";
 import Gallery from "../components/layout/Gallery";
 import Grid from "../components/layout/Grid";
-import ActivityFeed from "../components/views/ActivityFeed";
-import useAsync from "../hooks/Async";
-import { Activity } from "../classes/Activity";
 import Spinner from "../components/layout/Spinner";
+import ActivityFeed from "../components/views/ActivityFeed";
 import useActivity from "../hooks/Activity";
+import useChain from "../hooks/Chain";
+import { EntityType } from "../interfaces/API";
+import { API_ENTITY } from "../constants/ApiRoutes";
 
 export default (({ dispatch }) => {
     useEffect(() => {
@@ -23,10 +25,21 @@ export default (({ dispatch }) => {
     }, [dispatch]);
 
     const actdata = useActivity({
-        // limit: 50,
         includeAnonymous: true,
         reverse: true
     });
+
+    const programs = useChain(() => [
+        {
+            entity: EntityType.Content,
+            query: {
+                type: "@page.program",
+                sort: "random",
+                limit: 5
+            },
+            cons: Content
+        }
+    ], []);
 
     return <>
         <Grid
@@ -51,7 +64,17 @@ export default (({ dispatch }) => {
                 </p>
                 <div className="showcase-container">
                     <Gallery width="400px" height="240px" className="program-showcase">
+                        {programs?.content?.map((prg, i) => {
+                            let p = prg as Content;
+                            let img = API_ENTITY(`File/raw/${p.GetValue("photos")?.split(",")?.[0]}`);
+                            if (p.GetValue("photos") == null || p.GetValue("photos")?.trim() == "")
+                                img = "/res/img/logo.svg";
 
+                            return <div className="program" key={i}>
+                                <Link href="/pages/[id]" as={`/pages/${p.id}`}><img key={prg.id} src={img} /></Link>
+                                <span className="title">{p.name}</span>
+                            </div>
+                        })}
                     </Gallery>
                 </div>
                 <p>

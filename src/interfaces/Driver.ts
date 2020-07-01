@@ -20,6 +20,7 @@ export interface IChainedRequest<T = unknown> {
 
 export interface IDriver extends EventEmitter {
     token: string;
+    Listeners: Dictionary<Dictionary<string>>;
 
     Authenticate(token?: string): Promise<boolean>;
     Login(creds: Partial<IUserCredential>): Promise<true>;
@@ -48,20 +49,6 @@ export interface IDriver extends EventEmitter {
     Unwatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null>;
     ClearWatch(content: Partial<IContent> & { id: number }): Promise<IWatch | null>;
 
-    CreateSubscription(actions: IListenActionQuery[], listens: IListenListenerQuery[]): ISubscription;
-}
-
-export interface ISubscription extends EventEmitter {
-    readonly Connected: boolean;
-    readonly Listeners: Dictionary<Dictionary<string>>;
-
-    SetStatus(content: Partial<IContent> & { id: number }, status: string | null): this;
-    AddActionQuery(action: IListenActionQuery[]): this;
-    AddListenerQuery(action: IListenListenerQuery[]): this;
-    RemoveActionQuery(action: IListenActionQuery[]): this;
-    RemoveListenerQuery(action: IListenListenerQuery[]): this;
-
-    GetAllActionQueries(): IListenActionQuery[];
-    GetAllListenerQueries(): IListenListenerQuery[];
-    Destroy(): Promise<void>;
+    SetStatus(status: string | null, id?: number): Dictionary<string>;
+    SetListenChain(chain: IChainedRequest<IView>[]): IChainedRequest<IView>[];
 }

@@ -35,8 +35,9 @@ export class Content extends NamedEntity implements IContent {
         this.about = about;
     }
 
-    public async Vote(vote: Vote | null): Promise<Content[]> {
-        
+    public async Vote(vote: Vote | null): Promise<Content> {
+        await Intercept.Vote(this, vote);
+        return this;
     }
 
     public static async Get(query: Partial<ISearchQuery>): Promise<Content[]> {
@@ -69,7 +70,7 @@ export class Content extends NamedEntity implements IContent {
         return await Content.Update(c);
     }
 
-    public async GetParent(parenType: typeof Category | typeof User = Category): Promise<Category | User | undefined> {
-        return this.parentId > 0 ? (await parenType.Get({ ids: [this.parentId] }))[0] : undefined;
+    public async GetParent(parentType: typeof Category | typeof User = Category): Promise<Category | User | undefined> {
+        return this.parentId > 0 ? (await parentType.Get({ ids: [this.parentId] }))[0] : undefined;
     }
 }

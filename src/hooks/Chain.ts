@@ -24,6 +24,7 @@ export default function useChain(request: () => (IChainedRequest<any>[] | null),
 
     useEffect(() => {
         if (!equal(lastDeps, dependencies)) {
+            setReq(undefined);
             setData(undefined);
             setItems(undefined);
             setChained(undefined);
@@ -69,9 +70,13 @@ export default function useChain(request: () => (IChainedRequest<any>[] | null),
             nitems = {};
             for (let key in data) {
                 const type = key as EntityType;
-                let items = Intercept.GetCacheItems(type, (data[type] as IBase[]).map(d => d.id)).filter(v => v != null);
-                nitems[type] = items;
 
+                let items = req!
+                    .some(r => r.entity == type
+                        && (r.fields || []).length > 0)
+                    ? []
+                    : Intercept.GetCacheItems(type, (data[type] as IBase[]).map(d => d.id)).filter(v => v != null);
+                nitems[type] = items;
             }
             setItems(nitems);
         }

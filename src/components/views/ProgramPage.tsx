@@ -40,6 +40,9 @@ export default (({
                 </Link>
             </div>
         </Cell>
+        <Cell x={1} y={2}>
+            <h2>Program Info:</h2>
+        </Cell>
         <Cell x={1} y={3}>
             <MarkupView code={page.content} markupLang={page.Markup} />
             <br />

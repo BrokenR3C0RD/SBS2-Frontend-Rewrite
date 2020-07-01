@@ -8,7 +8,7 @@
 import { useDrag, useDrop, DragPreviewImage, ConnectDragPreview } from "react-dnd";
 import { useRef, HTMLAttributes } from "react";
 import { API_ENTITY } from "../../constants/ApiRoutes";
-import { Preview, PreviewProps } from "react-dnd-multi-backend";
+import { Preview } from "react-dnd-multi-backend";
 
 type ImageItem = { type: "image", fileID: number, idx?: number };
 

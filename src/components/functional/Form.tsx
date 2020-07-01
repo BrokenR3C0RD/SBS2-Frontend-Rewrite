@@ -8,10 +8,10 @@
 import React, { useState } from "react";
 import { Dictionary } from "../../interfaces/Generic";
 
-
 export default (({
     children,
-    onSubmit
+    onSubmit,
+    className = ""
 }) => {
     const [errors, setErrors] = useState<string[]>([]);
 
@@ -53,7 +53,7 @@ export default (({
         }
     }
 
-    return <form onSubmit={SubmissionHelper}>
+    return <form onSubmit={SubmissionHelper} className={className}>
         {children}
         <div className="errors">
             {errors.length > 0 && <>
@@ -66,5 +66,6 @@ export default (({
         </div>
     </form>
 }) as React.FunctionComponent<{
-    onSubmit: (data: Dictionary<string | boolean | number>) => Promise<unknown>
+    onSubmit: (data: Dictionary<string | boolean | number>) => Promise<unknown>,
+    className?: string
 }>;

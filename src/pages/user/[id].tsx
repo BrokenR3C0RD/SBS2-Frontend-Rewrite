@@ -33,8 +33,7 @@ const [Page, getServerSideProps] = withCache((({
         return [{
             entity: EntityType.User,
             query: {
-                ids: !isNaN(+id) ? [+id] : [],
-                username: isNaN(+id) ? id.toString() + "%" : undefined,
+                ids: !isNaN(+id) ? [+id] : [0],
                 limit: 1
             },
             cons: User
@@ -82,8 +81,7 @@ const [Page, getServerSideProps] = withCache((({
     [{
         entity: EntityType.User,
         query: {
-            ids: !isNaN(+id) ? [+id] : [],
-            ...isNaN(+id) ? { username: id.toString() + "%" } : {},
+            ids: !isNaN(+id) ? [+id] : [0],
             limit: 1
         },
     },

@@ -24,8 +24,8 @@ export abstract class EventEmitter {
         }
     }
 
-    public On(event: string, callback: EventCallback<unknown[]>): number {
-        this.listeners[event] = [callback as EventCallback<unknown[]> | null].concat(this.listeners[event] || []);
+    public On(event: string, callback: EventCallback<any[]>): number {
+        this.listeners[event] = [callback as EventCallback<any[]> | null].concat(this.listeners[event] || []);
         return this.listeners[event].length;
     }
 

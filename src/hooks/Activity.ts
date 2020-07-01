@@ -8,8 +8,8 @@
 import { IActivityFilter, EntityType, CRUD } from "../interfaces/API";
 import { IAggregateEvent } from "../classes/Activity";
 import useChain from "./Chain";
-import { useCallback, useEffect, useState } from "react";
-import { IComment, ICommentAggregate, IEvent, IContent, IUser } from "../interfaces/Views";
+import { useEffect, useState } from "react";
+import { ICommentAggregate, IEvent, IContent, IUser } from "../interfaces/Views";
 import equal from "deep-equal";
 
 // Returns true if the arrays have the same data.
@@ -30,6 +30,7 @@ export default function useActivity(filter?: Partial<IActivityFilter>) {
             setLastFilter(filter ?? {});
         }
     }, [filter]);
+    
     let data = useChain(
         () => {
             if (lastFilter == null) throw null;

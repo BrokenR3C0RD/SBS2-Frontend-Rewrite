@@ -12,8 +12,6 @@ import { User } from "../../classes/User";
 import { CRUD, EntityType } from "../../interfaces/API";
 import { IContent, IUser, IView } from "../../interfaces/Views";
 import DayJS from "dayjs";
-import Calendar from "dayjs/plugin/calendar";
-DayJS.extend(Calendar);
 
 let LinkFromTarget = (({
     linkParts = ["/", "/", "unknown"],
@@ -47,6 +45,8 @@ let ActivityEvent = (({
             return [`/user/[id]`, `/user/${poss.id}`, `${(poss as IUser).username}'s userpage`];
         } else {
             let base = (target as IContent).type.split(".")[0].substr(1) + "s";
+            if(base == "s")
+                base = "pages";
             return [`/${base}/[id]`, `/${base}/${target.id}`, (target as IContent).name];
         }
     }).reverse() as [string, string, string][];
@@ -79,7 +79,7 @@ let ActivityEvent = (({
                                 case CRUD.Create:
                                     return <>created an account.</>;
                                 case CRUD.Update:
-                                    return <>confirmed their account.</>;
+                                    return <>updated their account.</>;
                                 case CRUD.Delete:
                                     return <>deleted their account.</>;
                             }

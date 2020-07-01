@@ -25,8 +25,12 @@ import "../styles/dark.css";
 import "../styles/light.css";
 
 import { CacheDriver } from "../classes/CacheDriver";
-import { EntityType } from "../interfaces/API";
+import { EntityType, IActivityFilter } from "../interfaces/API";
 import { API_ROOT } from "../constants/ApiRoutes";
+
+import DayJS from "dayjs";
+import Calendar from "dayjs/plugin/calendar";
+DayJS.extend(Calendar);
 
 if (typeof window === "object") {
     window.Intercept = new CacheDriver();
@@ -38,6 +42,35 @@ if (typeof window === "object") {
     });
     window.Intercept.Authenticate((sessionStorage.getItem("sbs-auth") || localStorage.getItem("sbs-auth") || undefined));
     window.Intercept.Read(EntityType.Category, {}); // Preloading categories = good idea
+    window.Intercept.SetListenChain([ // Activity chaining
+        { // Get all updated comments
+            entity: EntityType.Comment,
+            constraint: [["id"]]
+        },
+        { // Get all new activity events.
+            entity: EntityType.Activity,
+            constraint: [["id"]]
+        },
+        { // Get all new watch notifications
+            entity: EntityType.ActivityAggregate,
+            constraint: [["id"]],
+            query: {
+                ContentLimit: {
+                    watches: true
+                }
+            } as Partial<IActivityFilter>
+        },
+        { // Get all users linked to events
+            entity: EntityType.User,
+            constraint: [[], ["createUserId", "editUserId"], ["userId", "contentId"], ["userIds"]]
+        },
+        { // Get all content lined to events
+            entity: EntityType.Content,
+            constraint: [[], ["parentId"], ["contentId"], ["id"]]
+        }
+    ]);
+    window.Intercept.SetStatus("Online (SBS2)");
+
 } else {
     global.Intercept = new CacheDriver();
 }
@@ -185,7 +218,7 @@ export default (({
 
             <link rel="canonical" href={`https://oboy.smilebasicsource.com:49420${Router.asPath}`} />
             <link rel="preconnect" href={API_ROOT} crossOrigin="anonymous" />
-            <link rel="preconnect" href="https://www.tinygraphs.com" crossOrigin="anonymous" />A
+            <link rel="preconnect" href="//a.sbapi.me" crossOrigin="anonymous" />A
 
             <title>{state.title ? `${state.title} | SmileBASIC Source` : "SmileBASIC Source"}</title>
         </Head>

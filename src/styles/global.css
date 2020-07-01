@@ -321,6 +321,10 @@ nav #show-sidebar:active {
     font-weight: bold;
 }
 
+.grid.discussions-grid {
+    height: calc(100vh - var(--nav-height));
+}
+
 .cell.discussion-view {
     position: relative;
     overflow: hidden;
@@ -421,7 +425,7 @@ nav #user-info[data-open="true"] #user-name:before {
     content: "▲";
 }
 
-nav #user-info ul {
+nav #user-info > ul {
     display: none;
 }
 
@@ -429,7 +433,7 @@ nav #user-info h2 {
     margin-top: 0;
 }
 
-nav #user-info[data-open="true"] ul {
+nav #user-info[data-open="true"] > ul {
     color: white;
     display: block;
     position: fixed;
@@ -442,6 +446,7 @@ nav #user-info[data-open="true"] ul {
     list-style: none;
     box-shadow: -2px 2px 10px var(--shadow);
     padding: 1em;
+    height: auto;
 }
 
 nav #user-info[data-open="true"] ul li {
@@ -609,6 +614,11 @@ nav #user-info button .user-avatar {
 
 form .errors {
     color: red;
+}
+
+form .errors ul {
+    list-style-type: none;
+    padding-left: 0;
 }
 
 form input:not([type="checkbox"]),

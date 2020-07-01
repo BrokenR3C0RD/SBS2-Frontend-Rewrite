@@ -358,15 +358,17 @@ export interface IEvent {
 export interface IListenActionQuery {
     lastId: number;
     statuses: Dictionary<string>,
-    chain: string[]
+    chains: string[]
 }
 
 export interface IListenListenerQuery {
     lastListeners: Dictionary<Dictionary<string>>;
-    chain: string[]
+    chains: string[]
 }
 
 export interface IListenChainResponse {
     listeners: Dictionary<Dictionary<string>>;
-    chain: Partial<IChainedResponse>;
+    chains: Partial<IChainedResponse>;
+    lastId: number;
+    warnings: string[];
 }

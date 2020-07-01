@@ -43,7 +43,7 @@ export default (({
         if (filledIn.length >= 1) {
             let nusers = (await User
                 .Get({
-                    username: `%${filledIn}%`
+                    usernamelike: `%${filledIn}%`
                 }))
                 .sort((user1, user2) => dl(user1.username, filledIn).similarity - dl(user2.username, filledIn).similarity)
                 .filter(user => users.find(nuser => user.id == nuser.id) == null);
