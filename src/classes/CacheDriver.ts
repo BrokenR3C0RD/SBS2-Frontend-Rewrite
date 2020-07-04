@@ -511,6 +511,13 @@ export class CacheDriver extends EventEmitter implements IDriver {
         if (this.fieldQueued[hash]) {
             let resp = await this.fieldQueued[hash].AwaitValue() as unknown as IChainedResponse;
             delete this.fieldQueued[hash];
+            for (let key in resp) {
+                let type = key as EntityType;
+
+                let cons = request.find(req => req.entity == type && req.cons)?.cons;
+                if (cons != null)
+                    resp[type] = (resp[type] as IView[]).map<IView>((n: IView) => new cons!(n)) as any;
+            }
             return resp;
         } else if (this.chaincache[hash] && !this.chaincache[hash].expired) {
             let d = await this.chaincache[hash].AwaitValue();
@@ -528,7 +535,10 @@ export class CacheDriver extends EventEmitter implements IDriver {
 
             for (let k in d) {
                 let ids = d[k as EntityType]!;
+                let cons = request.find(req => req.entity === k && req.cons)?.cons;
                 resp[k as EntityType] = await this.Read(k as EntityType, { ids }, typeof abort == "boolean" ? abort : false) as any;
+                if (cons)
+                    resp[k as EntityType] = (resp[k as EntityType] as IView[]).map<IView>((n: IView) => new cons!(n)) as any;
             }
 
             return resp;

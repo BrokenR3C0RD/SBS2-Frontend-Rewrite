@@ -150,7 +150,7 @@ export default (({
                 {composer
                     ? <Composer hidePreview code={code} markup={markup} onChange={(code, markup) => { setCode(code); setMarkup(markup); }} />
                     : <textarea value={code} onInput={evt => setCode(evt.currentTarget.value)} onKeyPress={evt => {
-                        if (!evt.shiftKey && evt.key == "Enter") { evt.preventDefault(); PostComment() }
+                        if (!evt.shiftKey && evt.key == "Enter") { evt.preventDefault(); PostComment(); }
                     }} />}
                 < div className="discussion-buttons" >
                     <button type="submit">
