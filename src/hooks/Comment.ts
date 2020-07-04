@@ -113,12 +113,9 @@ export default function useComments(contentId: number | undefined): [Comment[], 
                     setFetching(false);
                 });
         } else {
-            console.log(fetching, contentId, comments.length);
             setFetching(false);
         }
     }, [fetching]);
-
-    console.log(users, listenerIds);
 
     return [comments as Comment[], users.filter(user => listenerIds.includes(user.id)), users, fetching, more, () => setFetching(more)];
 }

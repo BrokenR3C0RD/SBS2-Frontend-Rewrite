@@ -5,7 +5,7 @@
  * Copyright (c) 2020 MasterR#C0RD
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { User, FullUser } from "../../classes/User";
 import { Content } from "../../classes/Content";
 import Grid from "../layout/Grid";
@@ -26,6 +26,39 @@ import Spinner from "../layout/Spinner";
 
 type MergedComments = IComment & { Contents: { content: string, markup: string }[] }
 
+const DiscussionInput = (({
+    discussion
+}) => {
+    const [composer, setComposer] = useState<boolean>(false);
+    const [code, setCode] = useState<string>("");
+    const [markup, setMarkup] = useState<string>("plaintext");
+
+    async function PostComment() {
+        Comment.Create(discussion, code, markup);
+        setCode("");
+        return true;
+    }
+
+    return <Form className="discussion-input" onSubmit={PostComment}>
+        {composer
+            ? <Composer hidePreview code={code} markup={markup} onChange={(code, markup) => { setCode(code); setMarkup(markup); }} />
+            : <textarea value={code} onInput={evt => setCode(evt.currentTarget.value)} onKeyPress={evt => {
+                if (!evt.shiftKey && evt.key == "Enter") { evt.preventDefault(); PostComment(); }
+            }} />}
+        < div className="discussion-buttons" >
+            <button type="submit">
+                <InlineIcon icon={Send} />
+            </button>
+            <button type="button" onClick={() => setComposer(!composer)}>
+                <InlineIcon icon={Compose} />
+                {` ${markup == "plaintext" ? "" : markup}`}
+            </button>
+        </div>
+    </Form>
+}) as React.FunctionComponent<{
+    discussion: Content
+}>;
+
 export default (({
     self,
     discussion,
@@ -36,23 +69,66 @@ export default (({
     more,
     loadMore
 }) => {
-    const [composer, setComposer] = useState<boolean>(false);
-    const [code, setCode] = useState<string>("");
-    const [markup, setMarkup] = useState<string>("plaintext");
     const [mcomments, setMComments] = useState<MergedComments[]>([]);
-    const [ref, inView] = useInView({});
+    const [ref, inView] = useInView({
+        threshold: 1
+    });
 
     useEffect(() => {
         if (!loading && inView && more) {
             loadMore();
         }
-    }, [inView]);
+    }, [inView, loading]);
 
-    async function PostComment() {
-        Comment.Create(discussion, code, markup);
-        setCode("");
-        return true;
+
+    const [lastCommentLength, setLastCommentLength] = useState<number>(0);
+    const divRef = useRef<HTMLDivElement>(null);
+
+    const scrollRef = useRef({
+        shouldScroll: false,
+        isScrolling: false,
+        lastLoading: false,
+        loadScrollTop: 0,
+        loadScrollHeight: 0
+    });
+    let scrollDistance = () => Math.floor(divRef.current!.scrollHeight - divRef.current!.clientHeight - divRef.current!.scrollTop);
+
+    function autoScrollAnimation() {
+        if (scrollRef.current.isScrolling || !scrollRef.current.shouldScroll)
+            return;
+
+        scrollRef.current.isScrolling = true;
+        var distance = scrollDistance();
+
+        //Now shift the window by an amount proportional to the distance (up to a minimum).
+        divRef.current!.scrollTop += Math.max(Math.ceil(distance / 4), 1);
+
+        scrollRef.current.isScrolling = false;
+        if (scrollDistance() > 0 && scrollRef.current.shouldScroll)
+            requestAnimationFrame(() => autoScrollAnimation());
     }
+
+    useLayoutEffect(() => {
+        if (lastCommentLength == 0 || divRef.current!.scrollTop >= (divRef.current!.scrollHeight - divRef.current!.clientHeight * 5 / 4)) {
+            scrollRef.current.shouldScroll = true;
+            autoScrollAnimation();
+        }
+
+        if (divRef.current!.scrollHeight !== divRef.current!.clientHeight)
+            setLastCommentLength(comments.length);
+    });
+
+    useLayoutEffect(() => {
+        if (scrollRef.current.lastLoading != loading) {
+            if (loading) {
+                scrollRef.current.shouldScroll = false;
+                scrollRef.current.loadScrollHeight = divRef.current!.scrollHeight - divRef.current!.clientHeight;
+            } else {
+                divRef.current!.scrollTop = scrollRef.current.loadScrollHeight;
+            }
+            scrollRef.current.lastLoading = true;
+        }
+    }, [loading]);
 
     useEffect(() => {
         let last: MergedComments | null = null;
@@ -69,30 +145,9 @@ export default (({
                 });
             }
         }
-        console.log(comments);
 
         setMComments(coms);
     }, [comments.length]);
-
-    // Autoscroll
-    const divRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        if (divRef.current) {
-            let resizeObserver = new ResizeObserver((entries) => {
-                let entry = entries[0].target;
-                if (entry.scrollTop >= (entry.scrollHeight - entry.clientHeight * 5 / 4)) {
-                    entry.scrollTo({
-                        top: entry.scrollHeight,
-                        left: 0,
-                        behavior: "smooth"
-                    });
-                }
-
-            });
-            resizeObserver.observe(divRef.current!);
-            return () => resizeObserver.disconnect();
-        }
-    });
 
     return <Grid
         className="discussions-grid"
@@ -145,25 +200,10 @@ export default (({
                         </div>
                     })}
                 </div>
+                <DiscussionInput discussion={discussion} />
             </div>
-            <Form className="discussion-input" onSubmit={PostComment}>
-                {composer
-                    ? <Composer hidePreview code={code} markup={markup} onChange={(code, markup) => { setCode(code); setMarkup(markup); }} />
-                    : <textarea value={code} onInput={evt => setCode(evt.currentTarget.value)} onKeyPress={evt => {
-                        if (!evt.shiftKey && evt.key == "Enter") { evt.preventDefault(); PostComment(); }
-                    }} />}
-                < div className="discussion-buttons" >
-                    <button type="submit">
-                        <InlineIcon icon={Send} />
-                    </button>
-                    <button type="button" onClick={() => setComposer(!composer)}>
-                        <InlineIcon icon={Compose} />
-                        {` ${markup == "plaintext" ? "" : markup}`}
-                    </button>
-                </div>
-            </Form>
         </Cell>
-    </Grid >;
+    </Grid>;
 }) as React.FunctionComponent<{
     self: FullUser | null,
     discussion: Content,

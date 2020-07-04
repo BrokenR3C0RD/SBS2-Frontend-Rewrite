@@ -436,7 +436,6 @@ export class HTTPDriver extends EventEmitter implements IDriver {
                     } as IListenListenerQuery))
                     .Execute(this.controller.signal)
             );
-            console.log(resp);
 
             if (resp != null) {
                 this.lastId = resp.lastId;
