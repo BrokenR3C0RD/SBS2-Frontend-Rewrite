@@ -13,7 +13,7 @@ import ClosedSwitch from "@iconify/icons-mdi/electric-switch-closed";
 
 export default (({ dispatch, theme }) => {
     return <footer>
-        <div style={{ float: "left", height: "2em" }}>
+        <div className="footer-text">
             &copy; 2020 SmileBASIC Source
         </div>
         <button aria-label="Switch theme" onClick={() => dispatch({ type: "SET_THEME" })}><InlineIcon icon={theme === "dark" ? ClosedSwitch : OpenSwitch} /></button>

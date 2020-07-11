@@ -22,7 +22,7 @@ const URL_MAP = {
     "page": "/pages/[id]"
 }
 
-export default (({ dispatch, user, userOpen }) => {
+export default (({ dispatch, user, sidebarToggleId, userOpen }) => {
     const [query, setQuery] = useState<string>("");
     const [results, setResults] = useState<{
         type: string,
@@ -131,30 +131,31 @@ export default (({ dispatch, user, userOpen }) => {
     }
 
     return <nav>
-        <span id="nav-brand">
-            <Link href="/"><a>
-                <img src="/res/img/logo.svg" alt="(OK)" />
-            </a>
-            </Link>
-        </span>
+        <div className="nav-main">
+            <span id="nav-brand">
+                <Link href="/"><a>
+                    <img src="/res/img/logo.svg" alt="(OK)" />
+                </a>
+                </Link>
+            </span>
 
-        <span className="search-container">
-            <input type="text" placeholder="Search..." value={query} onChange={(evt) => setQuery(evt.currentTarget.value)} />
-            <div id="hideout" />
-            <div id="results">
-                <ul>
-                    {results.map((result, i) => {
-                        let href = result.type == "user" ? "/user/[id]" : (URL_MAP as any)[result.type.substr(1).split(".")[0]] || URL_MAP["page"];
-                        let as = href.replace("[id]", result.id.toString());
-                        return <li key={i}>
-                            <Link href={href} as={as}><a>{result.name}</a></Link>
-                        </li>
-                    })}
-                </ul>
-            </div>
-        </span>
+            <span className="search-container">
+                <input type="text" placeholder="Search..." value={query} onChange={(evt) => setQuery(evt.currentTarget.value)} />
+                <div id="hideout" />
+                <div id="results">
+                    <ul>
+                        {results.map((result, i) => {
+                            let href = result.type == "user" ? "/user/[id]" : (URL_MAP as any)[result.type.substr(1).split(".")[0]] || URL_MAP["page"];
+                            let as = href.replace("[id]", result.id.toString());
+                            return <li key={i}>
+                                <Link href={href} as={as}><a>{result.name}</a></Link>
+                            </li>
+                        })}
+                    </ul>
+                </div>
+            </span>
+        </div>
 
-        <img src="/res/img/hamburger.png" aria-role="button" aria-pressed="false" tabIndex={0} id="show-sidebar" onClick={() => dispatch({ type: "TOGGLE_SIDE" })} alt="Toggle Sidebar" />
         <div id="user-info" data-open={userOpen}>
             {user && (
                 <>
@@ -179,9 +180,11 @@ export default (({ dispatch, user, userOpen }) => {
                 </ul>
             </>}
         </div>
+        <label htmlFor={sidebarToggleId} id="show-sidebar"><img src="/res/img/hamburger.png" aria-role="button" aria-pressed="false" tabIndex={0} alt="Toggle Sidebar" /></label>
     </nav>
 }) as React.FunctionComponent<{
     dispatch: React.Dispatch<Action>,
     user: FullUser | null | undefined,
+    sidebarToggleId: string,
     userOpen: boolean
 }>;

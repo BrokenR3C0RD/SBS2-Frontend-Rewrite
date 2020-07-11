@@ -2,7 +2,7 @@
 
 ::-webkit-scrollbar {
     background-color: transparent;
-    width: 1em;
+    width: 0.5em;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -60,6 +60,22 @@ a:hover {
     color: gray;
 }
 
+.app{
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+.app-content{
+    display: flex;
+    flex-direction: row;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+}
+
 footer {
     background-color: black;
     color: white;
@@ -69,6 +85,13 @@ footer {
     line-height: 2.5em;
     overflow: hidden;
     padding-left: .5em;
+    display: flex;
+    flex-direction: row;
+}
+
+footer .footer-text{
+    flex: 1 1 auto;
+    height: 100%;
 }
 
 :root footer button {
@@ -79,18 +102,15 @@ footer {
     height: 2.5em;
     line-height: 2.5em;
     padding: 0;
-    float: right;
 }
 
 nav {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
+    display: flex;
     width: 100%;
+    flex: 0 0 var(--nav-height);
     background-color: rgba(0, 0, 0, 0.7);
-    height: 1.5em;
-    line-height: 1.5em;
+    height: var(--nav-height);
+    line-height: var(--nav-height);
     border-bottom: 1px solid #333;
     box-shadow: 0 3px 5px var(--shadow);
     z-index: 1000000;
@@ -108,6 +128,11 @@ nav {
     z-index: -1;
     opacity: .4;
 } */
+
+nav .nav-main{
+    display: inline-block;
+    flex: 1 1 auto;
+}
 
 nav #nav-brand {
     vertical-align: top;
@@ -183,12 +208,12 @@ nav .search-container #results:active {
 }
 
 nav #user-info {
-    display: block;
-    float: right;
+    display: inline-block;
     line-height: 1.5em;
     height: 1.5em;
     width: fit-content;
     max-width: calc(100% - 4.5em);
+    vertical-align: top;
 }
 
 nav #user-info .user-avatar {
@@ -199,12 +224,16 @@ nav #user-info .user-avatar {
 }
 
 nav #show-sidebar {
-    display: block;
-    float: right;
+    display: none;
     width: 1.5em;
     height: 1.5em;
     margin: 0 .25em;
     transition: transform .3s;
+}
+
+nav #show-sidebar>img{
+    width: 100%;
+    height: 100%;
 }
 
 nav #show-sidebar[data-open="true"] {
@@ -245,8 +274,6 @@ nav #show-sidebar:active {
 :root .photo button {
     position: absolute;
     color: red;
-    width: min-content;
-    height: min-content;
     padding: 3px;
     margin: 0;
     font-weight: bold;
@@ -480,16 +507,12 @@ nav #user-info button .user-avatar {
 }
 
 #sidebar {
-    position: fixed;
+    position: relative;
     z-index: 10000;
-    right: 0;
-    top: var(--nav-height);
-    float: left;
-    height: calc(100vh - var(--nav-height));
+    height: 100%;
     width: 20%;
     opacity: 1;
     overflow-y: auto;
-    box-shadow: -2px 0px 5px var(--shadow);
 }
 
 #sidebar:after {
@@ -575,10 +598,9 @@ nav #user-info button .user-avatar {
 
 #container {
     margin: 0;
-    margin-top: var(--nav-height);
-    margin-right: 20%;
+    flex: 1 1 auto;
     width: calc(80%);
-    height: calc(100vh - var(--nav-height));
+    height: 100%;
     position: relative;
     font-size: 1em;
     background-color: var(--cell-background);
@@ -586,7 +608,7 @@ nav #user-info button .user-avatar {
 }
 
 #content {
-    min-height: 100%;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -693,6 +715,16 @@ button:not(:disabled):hover {
 input[type="submit"]:not(:disabled):active,
 button:not(:disabled):active {
     filter: invert(25%);
+}
+
+.homepage-container{
+    display: grid;
+    grid-template-areas: 'a a' 'b c' 'd d';
+    grid-template-columns: 1fr 1fr;
+}
+
+.homepage-container>div{
+    padding: 1em;
 }
 
 .gallery {
@@ -1058,7 +1090,6 @@ button:not(:disabled):active {
     display: inline;
     padding: .10em;
     border: 0;
-    width: 100%;
 }
 
 .composer .composer-editor {
@@ -1748,10 +1779,17 @@ input:focus+#hideout {
         max-width: calc(50% - 6em);
     }
 
-    #sidebar:not([data-open="true"]) {
-        margin-right: -15em;
+    nav #show-sidebar{
+        display: inline-block;
     }
-
+    
+    #sidebar{
+        position: absolute;
+        right: -16em;
+        transition: right .3s;
+        box-shadow: -2px 0px 5px var(--shadow);
+    }
+    
     #sidebar {
         width: 15em;
         overflow-x: hidden;
@@ -1770,7 +1808,11 @@ input:focus+#hideout {
 
 @media only screen and (max-width: 1280px) and (min-width: 800px) {
     #sidebar {
-        transition: margin-right .3s;
+        transition: right .5s;
+    }
+    
+    #sidebar-toggle:checked+#sidebar{
+        right: 0;
     }
 }
 
@@ -1778,19 +1820,23 @@ input:focus+#hideout {
     nav #user-info #user-name {
         display: none;
     }
+    
+    .homepage-container{
+        grid-template-areas: 'a a' 'b b' 'c c' 'd d';
+    }
 
     nav #user-info .user-avatar {
         margin-right: 0;
     }
 
     #sidebar {
-        width: 120%;
-        margin-right: -20%;
-        transition: margin-right .3s;
+        width: 100%;
+        right: calc(-100% - 1em);
+        transition: right .5s;
     }
 
-    #sidebar:not([data-open="true"]) {
-        margin-right: -120%;
+    #sidebar-toggle:checked+#sidebar {
+        right: 0;
     }
 
     .grid:not([data-always]) {

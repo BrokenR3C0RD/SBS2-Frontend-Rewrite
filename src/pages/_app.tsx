@@ -222,16 +222,21 @@ export default (({
 
             <title>{state.title ? `${state.title} | SmileBASIC Source` : "SmileBASIC Source"}</title>
         </Head>
-        <Navbar dispatch={dispatch} user={state.user} userOpen={state.userOpen} />
-        <Sidebar open={state.sideOpen} />
-        <div id="container">
-            <div id="content">
-                <Boundary>
-                    <Component dispatch={dispatch} state={state} {...pageProps} />
-                </Boundary>
+        <div className="app">
+            <Navbar dispatch={dispatch} sidebarToggleId="sidebar-toggle" user={state.user} userOpen={state.userOpen} />
+            <div className="app-content">
+                <div id="container">
+                    <div id="content">
+                        <Boundary>
+                            <Component dispatch={dispatch} state={state} {...pageProps} />
+                        </Boundary>
+                    </div>
+                    {!state.loaded && <div id="loading"><Spinner /></div>}
+                    {state.footer && <Footer dispatch={dispatch} theme={state.theme} />}
+                </div>
+                <input type="checkbox" style={{display: "none"}} id="sidebar-toggle" />
+                <Sidebar open={state.sideOpen} />
             </div>
-            {!state.loaded && <div id="loading"><Spinner /></div>}
-            {state.footer && <Footer dispatch={dispatch} theme={state.theme} />}
         </div>
     </>
 }) as NextPage<AppProps<{ dispatch: React.Dispatch<Action> }>>;

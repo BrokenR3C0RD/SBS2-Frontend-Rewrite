@@ -42,21 +42,12 @@ export default (({ dispatch }) => {
     ], []);
 
     return <>
-        <Grid
-            rows={["min-content", "1fr", "min-content", "min-content"]}
-            cols={["1fr", "max-content", "1fr"]}
-            // gapX="1em"
-            // gapY="1em"
-            style={{
-                width: "100%",
-                right: 0
-            }}
-        >
-            <Cell x={1} y={1} width={4}>
+        <div className="homepage-container">
+            <div style={{gridArea: "a"}}>
                 <h1>Welcome to SmileBASIC Source!</h1>
                 <Link href="/discussions/[id]" as="/discussions/384"><a>Test</a></Link>
-            </Cell>
-            <Cell x={1} y={2} width={2}>
+            </div>
+            <div style={{gridArea: "b"}}>
                 <h2>
                     <Link href="/pages/programs"><a>Program Gallery</a></Link>
                 </h2>
@@ -81,13 +72,13 @@ export default (({ dispatch }) => {
                 <p>
                     You can view all programs and resources
                 </p>
-            </Cell>
-            <Cell x={3} y={2} width={2} height={1}>
+            </div>
+            <div style={{gridArea: "c"}}>
                 <h2>Activity Feed</h2>
                 {actdata == null && <Spinner />}
                 {actdata && <ActivityFeed activity={actdata.activity} users={actdata.user} content={actdata.content} />}
-            </Cell>
-            <Cell x={1} y={4} width={4}>
+            </div>
+            <div style={{gridArea: "d"}}>
                 <h2>About SmileBASIC Source</h2>
                 <p>
                     SmileBASIC Source is an online community for <a href="http://smilebasic.com/en/">"SmileBASIC"</a>, a programming language and IDE for Nintendo platforms
@@ -100,15 +91,15 @@ export default (({ dispatch }) => {
                     Whether brand new to programming or a seasoned veteran, we hope to provide everything you need to enjoy
                     SmileBASIC!
                 </p>
-            </Cell>
-            <Cell x={1} y={5} width={4}>
+            </div>
+            <div>
                 <h2>Under development</h2>
                 <p>
                     SmileBASIC Source is still under active development, so you may find bugs or notice features that aren't yet available.
                     <br /><br />
                     Please report any bugs to MasterR3C0RD on Discord: @MasterR3C0RD#7695
                 </p>
-            </Cell>
-        </Grid>
+            </div>
+        </div>
     </>;
 }) as React.FunctionComponent<{ dispatch: React.Dispatch<Action> }>;
