@@ -47,7 +47,7 @@ const [Page, getServerSideProps] = withCache((({
             },
             constraint: [
                 [
-                    "id$parentIds"
+                    "id$createUserIds" 
                 ]
             ],
             cons: Content

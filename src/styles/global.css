@@ -403,7 +403,6 @@ nav #show-sidebar:active {
 .discussion-view .discussion-input {
     width: 100%;
     min-height: min-content;
-    flex-grow: 1;
     margin: 0;
     display: flex;
 }

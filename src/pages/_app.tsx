@@ -221,6 +221,8 @@ export default (({
             <link rel="preconnect" href="//a.sbapi.me" crossOrigin="anonymous" />A
 
             <title>{state.title ? `${state.title} | SmileBASIC Source` : "SmileBASIC Source"}</title>
+
+            <script src="/vendor/parse.js" />
         </Head>
         <div className="app">
             <Navbar dispatch={dispatch} sidebarToggleId="sidebar-toggle" user={state.user} userOpen={state.userOpen} />
